@@ -9,9 +9,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=9" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <!-- Chrome, Firefox OS and Opera -->
-    <meta name="theme-color" content="#2882CA">
+    <meta name="theme-color" content="#08BD1A">
     <!-- Windows Phone -->
-    <meta name="msapplication-navbutton-color" content="#2882CA">
+    <meta name="msapplication-navbutton-color" content="#08BD1A">
     <!-- iOS Safari -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -138,10 +138,10 @@
       <input id="download" type="checkbox" name="menubar" class="invisible">
       <input id="open-demos" type="checkbox" name="menubar" class="invisible">
       <input type="checkbox" id="dataurl" class="invisible">
-      
+
       <!-- Hidden Textbox (Detects Active Editor) -->
       <input type="text" class="fl hide" data-action="activeEditor" value="htmlEditor">
-     
+
       <!-- Float Left -->
       <label for="tools" class="pointer">
         <i class="fa fa-wrench"></i>
@@ -154,7 +154,7 @@
           <input class="heading block" type="text" data-action="sitedesc" placeholder="description" value="sample description">
           <input class="heading block" type="text" data-action="siteauthor" placeholder="author" value="kodeWeave">
         </div>
-        
+
         <div class="txtcenter fill">
           <a class="pointer block fn">
             <label for="dataurl" class="pointer">
@@ -215,7 +215,7 @@
           <textarea class="hide" data-action="libstextarea" placeholder="trigger click on library for online storage"></textarea>
           <textarea class="hide" data-action="ziplibs"></textarea>
         </div>
-        
+
         <div class="txtcenter" style="width: calc(100% - 50px);">
           <input type="text" class="txtbox" data-search="libraries" list="libraries" style="width: 100%; padding: 10px; padding-right: 40px; float: left; border-bottom: 6px solid #70bcff; background: #eee; font-size: 16px;" />
           <datalist id="libraries"></datalist>
@@ -223,7 +223,7 @@
             <i class="fa fa-times"></i>
           </a>
         </div>
-        
+
         <div class="addlibrary-tablets">
           <ul class="ldd-menu">
             <li>
@@ -1162,24 +1162,24 @@
         <!--<a href="https://cash.me/$michaelsboost" target="_blank">
           Donate to the kodeWeave project
         </a>
-        
-        
+
+
         <a href="https://www.paypal.com/cgi-bin/webscr?business=mikethedj4%40yahoo.com&amp;cmd=_xclick&amp;amount=5.0&amp;item_name=Donation&amp;currency_code=USD" target="_blank">
           Donate to the project via PayPal
         </a>
-        --> 
+        -->
          <a href="https://michaelsboost.github.io/WebDGap/" target="_blank">
           Export for Desktop and Mobile
         </a>
-         
+
         <a href="https://github.com/michaelsboost/kodeWeave/" target="_blank">
           Contribute to the project
         </a>
-        
+
         <a data-action="download-zip" title="Ctrl+S">
           Export as a .zip file
         </a>
-        
+
 
         <a data-action="save-gist">
           Save weave
@@ -1388,7 +1388,7 @@
                 </a>
                  <a class="pointer cssSetting" data-call="settings">
                   <label for="css-preprocessors" class="pointer fa fa-gear"></label>
-                </a> 
+                </a>
               </div>
             </div>
           </div>
@@ -1436,7 +1436,7 @@
         </div>
       </div>
     </form>
-    
+
     <!-- Preprocessors Dialog -->
     <div class="dialog-bg column preprocessordialog hide" data-action="preprocessors">
       <div>
@@ -1444,7 +1444,7 @@
           <div class="grid preprocessors">
             <div class="txtcenter">
               <h1>Choose your preprocessor!</h1>
-              
+
               <div class="preprocessor-tabs">
                 <div class="preprocessor-tab">
                   <input type="radio" id="html-preprocessors" name="preprocessor-list" checked>
@@ -1461,7 +1461,7 @@
                     <p>
                       <a class="btn--info html-preprocessor confirm-preprocessor" data-action="html-preprocessor">Close</a>
                     </p>
-                  </div> 
+                  </div>
                 </div>
 
                 <div class="preprocessor-tab">
@@ -1481,8 +1481,8 @@
                     </div>
                     <p>
                       <a class="btn--info css-preprocessor confirm-preprocessor" data-action="css-preprocessor">Close</a>
-                    </p> 
-                  </div> 
+                    </p>
+                  </div>
                 </div>
 
                 <div class="preprocessor-tab">
@@ -1502,7 +1502,7 @@
                     <p style="margin: 0;">
                       <a class="btn--info js-preprocessor confirm-preprocessor" data-action="js-preprocessor">Close</a>
                     </p>
-                  </div> 
+                  </div>
                 </div>
               </div>
             </div>
@@ -1510,7 +1510,7 @@
         </nav>
       </div>
     </div>
-    
+
     <!-- Dropdown list for editor -->
     <ul class="editoractionlist hide">
       <li class="pointer viewcompiledcode" data-action="compile">
@@ -1529,7 +1529,7 @@
         Uppercase Selection
       </li>
     </ul>
-    
+
     <!-- Share to social networks dialog -->
     <div class="dialog-bg column hide" data-action="socialdialog">
       <div>
@@ -1539,10 +1539,10 @@
               <h1>Share your weave with your friends!</h1>
               <h4 class="nomar" style="color: #888888;">Link:</h4>
               <input class="txtbox block" data-output="projectURL" />
-            
+
               <h4 class="nomar" style="color: #888888;">Embed:</h4>
               <input class="txtbox block" data-output="embedProject" />
-              
+
               <p>
                 <input type="checkbox" id="mdurl" checked="true" data-target="editorURL">
                 <label for="mdurl">MD</label>
@@ -1554,7 +1554,7 @@
                 <label for="jsurl">JS</label>
                 <input type="checkbox" id="resulturl" checked="true" data-target="editorURL">
                 <label for="resulturl">Result</label><br>
-                
+
                 <input type="checkbox" id="norerun" data-target="editorURL">
                 <label for="norerun">No Rerun</label>
                 <input type="checkbox" id="transparentembed" data-target="editorURL">
@@ -1564,7 +1564,7 @@
                 <input type="checkbox" id="editembed" data-target="editorURL">
                 <label for="editembed">Edit</label>
               </p>
-              
+
               <p id="clearSharePreview"></p>
 
               <a class="share-facebook" target="_blank">
@@ -1595,8 +1595,8 @@
         </nav>
       </div>
     </div>
-    
-    <!-- Walkthrough Navigation Dialog 
+
+    <!-- Walkthrough Navigation Dialog
     <input type="radio" id="close-walkthrough" class="hide" name="walkthrough-group">
 
     <label for="close-walkthrough" class="walkthrough-dialogbg pointer"></label>
@@ -1606,8 +1606,8 @@
       <input type="radio" id="tab3" class="hide" name="walkthrough-group" checked>
       <!--
       <div class="walkthrough-menu">
-        <label for="tab1">Using kodeWeave</label> 
-         <label for="tab2">Exportation</label> 
+        <label for="tab1">Using kodeWeave</label>
+         <label for="tab2">Exportation</label>
         <label for="tab3">Feed</label>
         <a href="https://cash.me/$michaelsboost" target="_blank">
           <label>Donate</label>
@@ -1629,7 +1629,7 @@
       <div id="exportation" class="walkthrough-content">
         <iframe width="100%" height="360" src="https://www.youtube.com/embed/cZLlx2KfPD8" frameborder="0" allowfullscreen></iframe>
       </div>
-      
+
       <div id="feed" class="walkthrough-content">
         <a class="twitter-timeline" href="https://twitter.com/kodeweave_app">Tweets by kodeweave_app</a>
         <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
@@ -1661,7 +1661,7 @@
     <script src="lib/shortcut.js"></script>
     <script src="lib/inlet.min.js"></script>
     <script src="kodeweave.js"></script>
-    
+
     <script>
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
       (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
