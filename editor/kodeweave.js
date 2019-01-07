@@ -9,9 +9,7 @@ var timeout, delay, selected_text, str, mynum,
     start_cursor, cursorLine, cursorCh, blob,
     jsContent, htmlContent, cssContent, cssSelected,
     showEditors, hasMD, hasHTML, hasCSS, hasJS,
-    editEmbed, darkUI, seeThrough, hasResult, offset,
-    tsCode, tsCompileCode, sass = new Sass(), output,
-    activeEditor = document.querySelector("[data-action=activeEditor]"),
+    editEmbed, darkUI, seeThrough, hasResult,
     welcomeDialog = function() {
       // Stop YouTube Video from playing when other tabs are clicked
       $("#tab2, #tab3, #tab4, #close-walkthrough").click(function() {
@@ -59,16 +57,6 @@ var timeout, delay, selected_text, str, mynum,
             yourCSS = out;
           }
         });
-      } else if ( cssSelected == "less") {
-        less.render(cssEditor.getValue(), function (e, output) {
-          yourCSS = output.css;
-        });
-      } else if (cssSelected == "scss" || cssSelected == "sass") {
-        var cssVal = cssEditor.getValue();
-
-        sass.compile(cssVal, function(result) {
-          yourCSS = result.text;
-        });
       }
     },
     renderYourJS = function() {
@@ -78,14 +66,36 @@ var timeout, delay, selected_text, str, mynum,
         yourJS = jsEditor.getValue();
       } else if ( jsSelected == "coffeescript") {
         yourJS = CoffeeScript.compile(jsEditor.getValue(), { bare: true });
-      } else if ( jsSelected == "typescript") {
-        yourJS = jsEditor.getValue();
-      } else if ( jsSelected == "babel") {
-        var result = Babel.transform(jsEditor.getValue(), {
-          presets: ['latest', 'stage-2', 'react']
-        });
-        yourJS = result.code;
       }
+    },
+    JSValEnabled = function() {
+      // jsEditor.setOption("lint", true)
+      jsEditor.setOption("gutters", ["CodeMirror-lint-markers", "CodeMirror-linenumbers", "CodeMirror-foldgutter"]);
+    },
+    JSValDisabled = function() {
+      // jsEditor.setOption("lint", false)
+      jsEditor.setOption("gutters", ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]);
+    },
+    validators = function() {
+      var JSValStatus = localStorage.getItem("JSValStatus");
+      if (JSValStatus === "true") {
+        $("#myjsvalidationswitch").prop("checked", true);
+        JSValEnabled();
+      } else {
+        $("#myjsvalidationswitch").prop("checked", "");
+        JSValDisabled();
+      }
+
+      document.getElementById("myjsvalidationswitch").onclick = function() {
+        localStorage.setItem("JSValStatus", $(this).prop("checked"));
+        if ( this.checked === true ) {
+          localStorage.setItem("SaveJSValSwitch", '"checked", "true"');
+          JSValEnabled();
+        } else {
+          localStorage.setItem("SaveJSValSwitch", '"checked", ""');
+          JSValDisabled();
+        }
+      };
     },
     singleFileDownload = function() {
       document.querySelector(".savehtml").onclick = function() {
@@ -99,9 +109,6 @@ var timeout, delay, selected_text, str, mynum,
           blob = new Blob([ htmlEditor.getValue() ], {type: "text/x-jade"});
           saveAs(blob, "source.jade");
         }
-        
-        // Ask to support open source software.
-        alertify.message("<div class=\"grid\"><div class=\"centered grid__col--12 tc\"><h2>Help keep this free!</h2><a href=\"https://snaptee.co/t/2nezt/?r=fb&teeId=2nezt\" target=\"_blank\"><img src=\"../assets/images/model-2.jpg\" width=\"100%\"></a><a class=\"btn--success\" href=\"https://snaptee.co/t/2nezt/?r=fb&teeId=2nezt\" target=\"_blank\" style=\"display: block;\">Buy Now</a></div></div>");
       };
       document.querySelector(".savecss").onclick = function() {
         cssSelected = $("#css-preprocessor option:selected").val();
@@ -113,19 +120,7 @@ var timeout, delay, selected_text, str, mynum,
         } else if ( cssSelected == "stylus") {
           blob = new Blob([ cssEditor.getValue() ], {type: "text/x-styl"});
           saveAs(blob, "source.styl");
-        } else if ( cssSelected == "less") {
-          blob = new Blob([ cssEditor.getValue() ], {type: "text/x-less"});
-          saveAs(blob, "source.less");
-        } else if ( cssSelected == "scss") {
-          blob = new Blob([ cssEditor.getValue() ], {type: "text/x-scss"});
-          saveAs(blob, "source.scss");
-        } else if ( cssSelected == "sass") {
-          blob = new Blob([ cssEditor.getValue() ], {type: "text/x-sass"});
-          saveAs(blob, "source.sass");
         }
-        
-        // Ask to support open source software.
-        alertify.message("<div class=\"grid\"><div class=\"centered grid__col--12 tc\"><h2>Help keep this free!</h2><a href=\"https://snaptee.co/t/2nezt/?r=fb&teeId=2nezt\" target=\"_blank\"><img src=\"../assets/images/model-2.jpg\" width=\"100%\"></a><a class=\"btn--success\" href=\"https://snaptee.co/t/2nezt/?r=fb&teeId=2nezt\" target=\"_blank\" style=\"display: block;\">Buy Now</a></div></div>");
       };
       document.querySelector(".savejs").onclick = function() {
         var jsSelected = $("#js-preprocessor option:selected").val();
@@ -136,112 +131,60 @@ var timeout, delay, selected_text, str, mynum,
         } else if ( jsSelected == "coffeescript") {
           blob = new Blob([ jsEditor.getValue() ], {type: "text/x-coffeescript"});
           saveAs(blob, "source.coffee");
-        } else if ( jsSelected == "typescript") {
-          blob = new Blob([ jsEditor.getValue() ], {type: "text/typescript"});
-          saveAs(blob, "source.ts");
-        } else if ( jsSelected == "babel") {
-          blob = new Blob([ jsEditor.getValue() ], {type: "text/javascript"});
-          saveAs(blob, "source.jsx");
         }
-        
-        // Ask to support open source software.
-        alertify.message("<div class=\"grid\"><div class=\"centered grid__col--12 tc\"><h2>Help keep this free!</h2><a href=\"https://snaptee.co/t/2nezt/?r=fb&teeId=2nezt\" target=\"_blank\"><img src=\"../assets/images/model-2.jpg\" width=\"100%\"></a><a class=\"btn--success\" href=\"https://snaptee.co/t/2nezt/?r=fb&teeId=2nezt\" target=\"_blank\" style=\"display: block;\">Buy Now</a></div></div>");
       };
       document.querySelector(".savemd").onclick = function() {
         var blob = new Blob([ mdEditor.getValue() ], {type: "text/x-markdown"});
         saveAs(blob, "source.md");
-        
-        // Ask to support open source software.
-        alertify.message("<div class=\"grid\"><div class=\"centered grid__col--12 tc\"><h2>Help keep this free!</h2><a href=\"https://snaptee.co/t/2nezt/?r=fb&teeId=2nezt\" target=\"_blank\"><img src=\"../assets/images/model-2.jpg\" width=\"100%\"></a><a class=\"btn--success\" href=\"https://snaptee.co/t/2nezt/?r=fb&teeId=2nezt\" target=\"_blank\" style=\"display: block;\">Buy Now</a></div></div>");
       };
     },
-    applyLowercase = function() {      
-      if ($(".editoractionlist").is(':visible')) {
-        $(".editoractionlist").addClass('hide');
-      }
+    applyLowercase = function() {
       if ( activeEditor.value === "htmlEditor" ) {
         selected_text = htmlEditor.getSelection().toLowerCase();  // Need to grab the Active Selection
 
-        htmlEditor.replaceSelection(selected_text).focus();
+        htmlEditor.replaceSelection(selected_text);
+        htmlEditor.focus();
       } else if ( activeEditor.value === "cssEditor" ) {
         selected_text = cssEditor.getSelection().toLowerCase();  // Need to grab the Active Selection
 
-        cssEditor.replaceSelection(selected_text).focus();
+        cssEditor.replaceSelection(selected_text);
+        cssEditor.focus();
       } else if ( activeEditor.value === "jsEditor" ) {
         selected_text = jsEditor.getSelection().toLowerCase();  // Need to grab the Active Selection
 
-        jsEditor.replaceSelection(selected_text).focus();
+        jsEditor.replaceSelection(selected_text);
+        jsEditor.focus();
       } else if ( activeEditor.value === "mdEditor" ) {
         selected_text = mdEditor.getSelection().toLowerCase();  // Need to grab the Active Selection
 
-        mdEditor.replaceSelection(selected_text).focus();
+        mdEditor.replaceSelection(selected_text);
+        mdEditor.focus();
       }
     },
-    applyUppercase = function() {      
-      if ($(".editoractionlist").is(':visible')) {
-        $(".editoractionlist").addClass('hide');
-      }
+    applyUppercase = function() {
       if ( activeEditor.value === "htmlEditor" ) {
         selected_text = htmlEditor.getSelection().toUpperCase();  // Need to grab the Active Selection
 
-        htmlEditor.replaceSelection(selected_text).focus();
+        htmlEditor.replaceSelection(selected_text);
+        htmlEditor.focus();
       } else if ( activeEditor.value === "cssEditor" ) {
         selected_text = cssEditor.getSelection().toUpperCase();  // Need to grab the Active Selection
 
-        cssEditor.replaceSelection(selected_text).focus();
+        cssEditor.replaceSelection(selected_text);
+        cssEditor.focus();
       } else if ( activeEditor.value === "jsEditor" ) {
         selected_text = jsEditor.getSelection().toUpperCase();  // Need to grab the Active Selection
 
-        jsEditor.replaceSelection(selected_text).focus();
+        jsEditor.replaceSelection(selected_text);
+        jsEditor.focus();
       } else if ( activeEditor.value === "mdEditor" ) {
         selected_text = mdEditor.getSelection().toUpperCase();  // Need to grab the Active Selection
 
-        mdEditor.replaceSelection(selected_text).focus();
+        mdEditor.replaceSelection(selected_text);
+        mdEditor.focus();
       }
     },
-    applyDuplication = function() {
-      if ( activeEditor.value === "htmlEditor" ) {
-        selected_text = htmlEditor.getSelection();  // Need to grab the Active Selection
-        
-        if (!selected_text) {
-          var selectedText = htmlEditor.getLine(htmlEditor.getCursor().line)
-          htmlEditor.replaceSelection('\n' + selectedText).focus();
-        } else {
-          htmlEditor.replaceSelection(selected_text + '\n' + selected_text).focus();
-        }
-      } else if ( activeEditor.value === "cssEditor" ) {
-        selected_text = cssEditor.getSelection();  // Need to grab the Active Selection
-
-        if (!selected_text) {
-          var selectedText = cssEditor.getLine(cssEditor.getCursor().line)
-          cssEditor.replaceSelection('\n' + selectedText).focus();
-        } else {
-          cssEditor.replaceSelection(selected_text + '\n' + selected_text).focus();
-        }
-      } else if ( activeEditor.value === "jsEditor" ) {
-        selected_text = jsEditor.getSelection();  // Need to grab the Active Selection
-
-        if (!selected_text) {
-          var selectedText = jsEditor.getLine(jsEditor.getCursor().line)
-          jsEditor.replaceSelection('\n' + selectedText).focus();
-        } else {
-          jsEditor.replaceSelection(selected_text + '\n' + selected_text).focus();
-        }
-      } else if ( activeEditor.value === "mdEditor" ) {
-        selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
-
-        if (!selected_text) {
-          var selectedText = mdEditor.getLine(mdEditor.getCursor().line)
-          mdEditor.replaceSelection('\n' + selectedText).focus();
-        } else {
-          mdEditor.replaceSelection(selected_text + '\n' + selected_text).focus();
-        }
-      }
-    },
-    applyMinify = function() {      
-      if ($(".editoractionlist").is(':visible')) {
-        $(".editoractionlist").addClass('hide');
-      }
+    applyMinify = function() {
       if ( activeEditor.value === "htmlEditor" ) {
         htmlEditor.setValue(htmlEditor.getValue().replace(/\<\!--\s*?[^\s?\[][\s\S]*?--\>/g,'').replace(/\>\s*\</g,'><'));
         $("input[name=menubar].active").trigger("click");
@@ -251,10 +194,7 @@ var timeout, delay, selected_text, str, mynum,
         jsEditor.setValue( jsEditor.getValue().replace(/\/\*[\s\S]*?\*\/|\/\/.*\n|\s{2,}|\n|\t|\v|\s(?=function\(.*?\))|\s(?=\=)|\s(?=\{)/g,"").replace(/\s?function\s?\(/g,"function(").replace(/\s?\{\s?/g,"{").replace(/\s?\}\s?/g,"}").replace(/\,\s?/g,",").replace(/if\s?/g,"if") );
       }
     },
-    applyBeautify = function() {      
-      if ($(".editoractionlist").is(':visible')) {
-        $(".editoractionlist").addClass('hide');
-      }
+    applyBeautify = function() {
       if ( activeEditor.value === "htmlEditor" ) {
         beautifyHTML();
       } else if ( activeEditor.value === "cssEditor" ) {
@@ -347,13 +287,14 @@ var timeout, delay, selected_text, str, mynum,
         // }
 
         applyBeautify();
-        $(".editoractionlist").addClass('hide');
+
+        $("input[name=menubar].active").trigger("click");
       };
 
       // Minify Code
       document.querySelector("[data-action=minify]").onclick = function() {
         applyMinify();
-        $(".editoractionlist").addClass('hide');
+        $("input[name=menubar].active").trigger("click");
       };
 
       // Go To Line
@@ -367,6 +308,7 @@ var timeout, delay, selected_text, str, mynum,
         } else if ( activeEditor.value === "mdEditor" ) {
           mdEditor.execCommand("gotoLine");
         }
+
         $("input[name=menubar].active").trigger("click");
       };
 
@@ -381,19 +323,20 @@ var timeout, delay, selected_text, str, mynum,
         } else if ( activeEditor.value === "mdEditor" ) {
           mdEditor.execCommand("emmet.toggle_comment");
         }
+
         $("input[name=menubar].active").trigger("click");
       };
 
       // Make text selection lowercase
       document.querySelector("[data-action=lowercase]").onclick = function() {
         applyLowercase();
-        $(".editoractionlist").addClass('hide');
+        $("input[name=menubar].active").trigger("click");
       };
 
       // Make text selection uppercase
       document.querySelector("[data-action=uppercase]").onclick = function() {
         applyUppercase();
-        $(".editoractionlist").addClass('hide');
+        $("input[name=menubar].active").trigger("click");
       };
 
       document.querySelector("[data-action=search]").onclick = function() {
@@ -724,7 +667,7 @@ var timeout, delay, selected_text, str, mynum,
           jsEditor.setValue("");
           $("#js-preprocessor").val("coffeescript").trigger("change");
         }
-        htmlEditor.setValue("<div class=\"editor-and-preview-container\">\n  <div class=\"editor-container\">Markdown Editor</div>\n  <div class=\"preview-container\">Preview</div>\n</div>\n<div class=\"editor-and-preview-container\">\n  <div class=\"editor-container\">\n    <textarea id=\"editor\">Welcome!\n===================\n\n![Placer text](data:image/png;base64,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)  \n\nHey! I'm your placement Markdown text.\n\n----------\n\n\nTypography\n-------------\n\n[kodeWeave Link](https://michaelsboost.github.io/kodeWeave/)  \n**bold text**  \n*italic text*  \n\n### Blockquote:\n\n> Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n### Bullet List\n\n - Green\n - Eggs\n - and\n - Ham\n\n### Numbered List\n\n 1. Green\n 2. Eggs\n 3. and\n 4. Ham\n</textarea>\n  </div>\n  <div class=\"preview-container\">\n    <div id=\"preview\"></div>\n  </div>\n</div>");
+        htmlEditor.setValue("<div class=\"editor-and-preview-container\">\n  <div class=\"editor-container\">Markdown Editor</div>\n  <div class=\"preview-container\">Preview</div>\n</div>\n<div class=\"editor-and-preview-container\">\n  <div class=\"editor-container\">\n    <textarea id=\"editor\">Welcome!\n===================\n\n![Placer text](data:image/png;base64,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)  \n\nHey! I'm your placement Markdown text.\n\n----------\n\n\nTypography\n-------------\n\n[kodeWeave Link](https://mikethedj4.github.io/kodeWeave/)  \n**bold text**  \n*italic text*  \n\n### Blockquote:\n\n> Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\n### Bullet List\n\n - Green\n - Eggs\n - and\n - Ham\n\n### Numbered List\n\n 1. Green\n 2. Eggs\n 3. and\n 4. Ham\n</textarea>\n  </div>\n  <div class=\"preview-container\">\n    <div id=\"preview\"></div>\n  </div>\n</div>");
         cssEditor.setValue("* {\n  box-sizing: border-box;\n}\n\nbody {\n  line-height: 1.4;\n}\n\n.editor-and-preview-container {\n  padding: 1em;\n  width: 100%;\n  height: 100%;\n}\n\n.editor-container, .preview-container {\n  display: inline;\n  overflow: hidden;\n  float: left;\n  width: 50%;\n  height: 100%;\n}\n\n#editor {\n  display: inline-block;\n  width: 100%;\n  height: 500px;\n  resize: none;\n  padding: 1em;\n  line-height: 1.5;\n}\n#editor:focus {\n  outline: none;\n}\n\n#preview {\n  width: 100%;\n  height: 500px;\n  border: 1px green solid;\n  padding: 0 1em;\n  overflow: auto;\n}");
         jsEditor.setValue("mdconverter = new (Showdown.converter)\neditor = $('#editor')\npreview = $('#preview')\n\nupdatePreview = ->\n  preview.html mdconverter.makeHtml(editor.val())\n\nupdatePreview()\neditor.on 'keyup', ->\n  updatePreview()");
         $(".hide-demos, #normalize, #jquery, #showdown").trigger("click");
@@ -805,20 +748,20 @@ var timeout, delay, selected_text, str, mynum,
         $(".check").attr("checked", false).trigger("change");
         $("[data-action=library-code]").val("").trigger("change");
         $("[data-action=sitetitle]").val("Embed a PDF Example").trigger("change");
-        if (document.getElementById("html-preprocessor").value == "none") {
+        if (document.getElementById("html-preprocessor").value == "jade") {
           htmlEditor.setValue("");
-          $("#html-preprocessor").val("jade").trigger("change");
+          $("#html-preprocessor").val("none").trigger("change");
         }
-        if (document.getElementById("css-preprocessor").value == "none") {
+        if (document.getElementById("css-preprocessor").value == "stylus") {
           cssEditor.setValue("");
-          $("#css-preprocessor").val("stylus").trigger("change");
+          $("#css-preprocessor").val("none").trigger("change");
         }
         if (document.getElementById("js-preprocessor").value == "coffeescript") {
           jsEditor.setValue("");
           $("#js-preprocessor").val("none").trigger("change");
         }
-        htmlEditor.setValue("iframe(src='http://docs.google.com/gview?url=http://www.usconstitution.net/const.pdf&embedded=true')");
-        cssEditor.setValue("html, body\n  height 100%\n  overflow hidden\n\niframe\n  width 100%\n  height 100%\n  border 0\n");
+        htmlEditor.setValue("<embed width=\"100%\" height=\"100%\" name=\"plugin\" src=\"http://www.usconstitution.net/const.pdf\" type=\"application/pdf\">");
+        cssEditor.setValue("html, body {\n  height: 100%;\n  overflow: hidden;\n}");
         jsEditor.setValue("");
         $(".hide-demos, #normalize").trigger("click");
         callCollabUpdate();
@@ -954,33 +897,44 @@ var timeout, delay, selected_text, str, mynum,
       };
       document.getElementById("tabindent").onclick = function() {
         if ( activeEditor.value === "htmlEditor" ) {
-          htmlEditor.execCommand("indentMore").focus();
+          htmlEditor.execCommand("indentMore");
+          htmlEditor.focus();
         } else if ( activeEditor.value === "cssEditor" ) {
-          cssEditor.execCommand("indentMore").focus();
+          cssEditor.execCommand("indentMore");
+          cssEditor.focus();
         } else if ( activeEditor.value === "jsEditor" ) {
-          jsEditor.execCommand("indentMore").focus();
+          jsEditor.execCommand("indentMore");
+          jsEditor.focus();
         } else if ( activeEditor.value === "mdEditor" ) {
-          mdEditor.execCommand("indentMore").focus();
+          mdEditor.execCommand("indentMore");
+          mdEditor.focus();
         }
       };
       document.getElementById("taboutdent").onclick = function() {
         if ( activeEditor.value === "htmlEditor" ) {
-          htmlEditor.execCommand("indentLess").focus();
+          htmlEditor.execCommand("indentLess");
+          htmlEditor.focus();
         } else if ( activeEditor.value === "cssEditor" ) {
-          cssEditor.execCommand("indentLess").focus();
+          cssEditor.execCommand("indentLess");
+          cssEditor.focus();
         } else if ( activeEditor.value === "jsEditor" ) {
-          jsEditor.execCommand("indentLess").focus();
+          jsEditor.execCommand("indentLess");
+          jsEditor.focus();
         } else if ( activeEditor.value === "mdEditor" ) {
-          mdEditor.execCommand("indentLess").focus();
+          mdEditor.execCommand("indentLess");
+          mdEditor.focus();
         }
       };
       document.getElementById("zeninit").onclick = function() {
         if ( activeEditor.value === "htmlEditor" ) {
-          htmlEditor.execCommand("emmet.expand_abbreviation_with_tab").focus();
+          htmlEditor.execCommand("emmet.expand_abbreviation_with_tab");
+          htmlEditor.focus();
         } else if ( activeEditor.value === "cssEditor" ) {
-          cssEditor.execCommand("emmet.expand_abbreviation_with_tab").focus();
+          cssEditor.execCommand("emmet.expand_abbreviation_with_tab");
+          cssEditor.focus();
         } else if ( activeEditor.value === "jsEditor" ) {
-          jsEditor.execCommand("emmet.expand_abbreviation_with_tab").focus();
+          jsEditor.execCommand("emmet.expand_abbreviation_with_tab");
+          jsEditor.focus();
         }
       };
       document.getElementById("charsym1").onclick = function() {
@@ -989,7 +943,8 @@ var timeout, delay, selected_text, str, mynum,
             selected_text = htmlEditor.getSelection();  // Need to grab the Active Selection
 
             htmlEditor.replaceSelection("", htmlEditor.getCursor());
-            htmlEditor.replaceRange("<>", htmlEditor.getCursor()).focus();
+            htmlEditor.replaceRange("<>", htmlEditor.getCursor());
+            htmlEditor.focus();
             str = ">";
             mynum = str.length;
             start_cursor = htmlEditor.getCursor();  // Need to get the cursor position
@@ -998,18 +953,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             htmlEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            htmlEditor.replaceRange(selected_text, htmlEditor.getCursor()).focus();
+            htmlEditor.replaceRange(selected_text, htmlEditor.getCursor());
+            htmlEditor.focus();
           } else {
             selected_text = htmlEditor.getSelection();  // Need to grab the Active Selection
 
-            htmlEditor.replaceSelection("<" + selected_text + ">").focus();
+            htmlEditor.replaceSelection("<" + selected_text + ">");
+            htmlEditor.focus();
           }
         } else if ( activeEditor.value === "cssEditor" ) {
           if (!cssEditor.getSelection().split(" ").join("")) {
             selected_text = cssEditor.getSelection();  // Need to grab the Active Selection
 
             cssEditor.replaceSelection("", cssEditor.getCursor());
-            cssEditor.replaceRange("<>", cssEditor.getCursor()).focus();
+            cssEditor.replaceRange("<>", cssEditor.getCursor());
+            cssEditor.focus();
             str = ">";
             mynum = str.length;
             start_cursor = cssEditor.getCursor();  // Need to get the cursor position
@@ -1018,18 +976,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             cssEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            cssEditor.replaceRange(selected_text, cssEditor.getCursor()).focus();
+            cssEditor.replaceRange(selected_text, cssEditor.getCursor());
+            cssEditor.focus();
           } else {
             selected_text = cssEditor.getSelection();  // Need to grab the Active Selection
 
-            cssEditor.replaceSelection("<" + selected_text + ">").focus();
+            cssEditor.replaceSelection("<" + selected_text + ">");
+            cssEditor.focus();
           }
         } else if ( activeEditor.value === "jsEditor" ) {
           if (!jsEditor.getSelection().split(" ").join("")) {
             selected_text = jsEditor.getSelection();  // Need to grab the Active Selection
 
             jsEditor.replaceSelection("", jsEditor.getCursor());
-            jsEditor.replaceRange("<>", jsEditor.getCursor()).focus();
+            jsEditor.replaceRange("<>", jsEditor.getCursor());
+            jsEditor.focus();
             str = ">";
             mynum = str.length;
             start_cursor = jsEditor.getCursor();  // Need to get the cursor position
@@ -1038,18 +999,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             jsEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            jsEditor.replaceRange(selected_text, jsEditor.getCursor()).focus();
+            jsEditor.replaceRange(selected_text, jsEditor.getCursor());
+            jsEditor.focus();
           } else {
             selected_text = jsEditor.getSelection();  // Need to grab the Active Selection
 
-            jsEditor.replaceSelection("<" + selected_text + ">").focus();
+            jsEditor.replaceSelection("<" + selected_text + ">");
+            jsEditor.focus();
           }
         } else if ( activeEditor.value === "mdEditor" ) {
           if (!mdEditor.getSelection().split(" ").join("")) {
             selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
             mdEditor.replaceSelection("", mdEditor.getCursor());
-            mdEditor.replaceRange("<>", mdEditor.getCursor()).focus();
+            mdEditor.replaceRange("<>", mdEditor.getCursor());
+            mdEditor.focus();
             str = ">";
             mynum = str.length;
             start_cursor = mdEditor.getCursor();  // Need to get the cursor position
@@ -1058,11 +1022,13 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             mdEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            mdEditor.replaceRange(selected_text, mdEditor.getCursor()).focus();
+            mdEditor.replaceRange(selected_text, mdEditor.getCursor());
+            mdEditor.focus();
           } else {
             selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-            mdEditor.replaceSelection("<" + selected_text + ">").focus();
+            mdEditor.replaceSelection("<" + selected_text + ">");
+            mdEditor.focus();
           }
         }
       };
@@ -1072,7 +1038,8 @@ var timeout, delay, selected_text, str, mynum,
             selected_text = htmlEditor.getSelection();  // Need to grab the Active Selection
 
             htmlEditor.replaceSelection("", htmlEditor.getCursor());
-            htmlEditor.replaceRange("{}", htmlEditor.getCursor()).focus();
+            htmlEditor.replaceRange("{}", htmlEditor.getCursor());
+            htmlEditor.focus();
             str = "}";
             mynum = str.length;
             start_cursor = htmlEditor.getCursor();  // Need to get the cursor position
@@ -1081,18 +1048,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             htmlEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            htmlEditor.replaceRange(selected_text, htmlEditor.getCursor()).focus();
+            htmlEditor.replaceRange(selected_text, htmlEditor.getCursor());
+            htmlEditor.focus();
           } else {
             selected_text = htmlEditor.getSelection();  // Need to grab the Active Selection
 
-            htmlEditor.replaceSelection("{" + selected_text + "}").focus();
+            htmlEditor.replaceSelection("{" + selected_text + "}");
+            htmlEditor.focus();
           }
         } else if ( activeEditor.value === "cssEditor" ) {
           if (!cssEditor.getSelection().split(" ").join("")) {
             selected_text = cssEditor.getSelection();  // Need to grab the Active Selection
 
             cssEditor.replaceSelection("", cssEditor.getCursor());
-            cssEditor.replaceRange("{}", cssEditor.getCursor()).focus();
+            cssEditor.replaceRange("{}", cssEditor.getCursor());
+            cssEditor.focus();
             str = "}";
             mynum = str.length;
             start_cursor = cssEditor.getCursor();  // Need to get the cursor position
@@ -1101,18 +1071,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             cssEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            cssEditor.replaceRange(selected_text, cssEditor.getCursor()).focus();
+            cssEditor.replaceRange(selected_text, cssEditor.getCursor());
+            cssEditor.focus();
           } else {
             selected_text = cssEditor.getSelection();  // Need to grab the Active Selection
 
-            cssEditor.replaceSelection("{" + selected_text + "}").focus();
+            cssEditor.replaceSelection("{" + selected_text + "}");
+            cssEditor.focus();
           }
         } else if ( activeEditor.value === "jsEditor" ) {
           if (!jsEditor.getSelection().split(" ").join("")) {
             selected_text = jsEditor.getSelection();  // Need to grab the Active Selection
 
             jsEditor.replaceSelection("", jsEditor.getCursor());
-            jsEditor.replaceRange("{}", jsEditor.getCursor()).focus();
+            jsEditor.replaceRange("{}", jsEditor.getCursor());
+            jsEditor.focus();
             str = "}";
             mynum = str.length;
             start_cursor = jsEditor.getCursor();  // Need to get the cursor position
@@ -1121,18 +1094,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             jsEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            jsEditor.replaceRange(selected_text, jsEditor.getCursor()).focus();
+            jsEditor.replaceRange(selected_text, jsEditor.getCursor());
+            jsEditor.focus();
           } else {
             selected_text = jsEditor.getSelection();  // Need to grab the Active Selection
 
-            jsEditor.replaceSelection("{" + selected_text + "}").focus();
+            jsEditor.replaceSelection("{" + selected_text + "}");
+            jsEditor.focus();
           }
         } else if ( activeEditor.value === "mdEditor" ) {
           if (!mdEditor.getSelection().split(" ").join("")) {
             selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
             mdEditor.replaceSelection("", mdEditor.getCursor());
-            mdEditor.replaceRange("{}", mdEditor.getCursor()).focus();
+            mdEditor.replaceRange("{}", mdEditor.getCursor());
+            mdEditor.focus();
             str = "}";
             mynum = str.length;
             start_cursor = mdEditor.getCursor();  // Need to get the cursor position
@@ -1141,11 +1117,13 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             mdEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            mdEditor.replaceRange(selected_text, mdEditor.getCursor()).focus();
+            mdEditor.replaceRange(selected_text, mdEditor.getCursor());
+            mdEditor.focus();
           } else {
             selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-            mdEditor.replaceSelection("{" + selected_text + "}").focus();
+            mdEditor.replaceSelection("{" + selected_text + "}");
+            mdEditor.focus();
           }
         }
       };
@@ -1155,7 +1133,8 @@ var timeout, delay, selected_text, str, mynum,
             selected_text = htmlEditor.getSelection();  // Need to grab the Active Selection
 
             htmlEditor.replaceSelection("", htmlEditor.getCursor());
-            htmlEditor.replaceRange('""', htmlEditor.getCursor()).focus();
+            htmlEditor.replaceRange('""', htmlEditor.getCursor());
+            htmlEditor.focus();
             str = '"';
             mynum = str.length;
             start_cursor = htmlEditor.getCursor();  // Need to get the cursor position
@@ -1164,18 +1143,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             htmlEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            htmlEditor.replaceRange(selected_text, htmlEditor.getCursor()).focus();
+            htmlEditor.replaceRange(selected_text, htmlEditor.getCursor());
+            htmlEditor.focus();
           } else {
             selected_text = htmlEditor.getSelection();  // Need to grab the Active Selection
 
-            htmlEditor.replaceSelection('"' + selected_text + '"').focus();
+            htmlEditor.replaceSelection('"' + selected_text + '"');
+            htmlEditor.focus();
           }
         } else if ( activeEditor.value === "cssEditor" ) {
           if (!cssEditor.getSelection().split(" ").join("")) {
             selected_text = cssEditor.getSelection();  // Need to grab the Active Selection
 
             cssEditor.replaceSelection("", cssEditor.getCursor());
-            cssEditor.replaceRange('""', cssEditor.getCursor()).focus();
+            cssEditor.replaceRange('""', cssEditor.getCursor());
+            cssEditor.focus();
             str = '"';
             mynum = str.length;
             start_cursor = cssEditor.getCursor();  // Need to get the cursor position
@@ -1184,18 +1166,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             cssEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            cssEditor.replaceRange(selected_text, cssEditor.getCursor()).focus();
+            cssEditor.replaceRange(selected_text, cssEditor.getCursor());
+            cssEditor.focus();
           } else {
             selected_text = cssEditor.getSelection();  // Need to grab the Active Selection
 
-            cssEditor.replaceSelection('"' + selected_text + '"').focus();
+            cssEditor.replaceSelection('"' + selected_text + '"');
+            cssEditor.focus();
           }
         } else if ( activeEditor.value === "jsEditor" ) {
           if (!jsEditor.getSelection().split(" ").join("")) {
             selected_text = jsEditor.getSelection();  // Need to grab the Active Selection
 
             jsEditor.replaceSelection("", jsEditor.getCursor());
-            jsEditor.replaceRange('""', jsEditor.getCursor()).focus();
+            jsEditor.replaceRange('""', jsEditor.getCursor());
+            jsEditor.focus();
             str = '"';
             mynum = str.length;
             start_cursor = jsEditor.getCursor();  // Need to get the cursor position
@@ -1204,18 +1189,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             jsEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            jsEditor.replaceRange(selected_text, jsEditor.getCursor()).focus();
+            jsEditor.replaceRange(selected_text, jsEditor.getCursor());
+            jsEditor.focus();
           } else {
             selected_text = jsEditor.getSelection();  // Need to grab the Active Selection
 
-            jsEditor.replaceSelection('"' + selected_text + '"').focus();
+            jsEditor.replaceSelection('"' + selected_text + '"');
+            jsEditor.focus();
           }
         } else if ( activeEditor.value === "mdEditor" ) {
           if (!mdEditor.getSelection().split(" ").join("")) {
             selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
             mdEditor.replaceSelection("", mdEditor.getCursor());
-            mdEditor.replaceRange('""', mdEditor.getCursor()).focus();
+            mdEditor.replaceRange('""', mdEditor.getCursor());
+            mdEditor.focus();
             str = '"';
             mynum = str.length;
             start_cursor = mdEditor.getCursor();  // Need to get the cursor position
@@ -1224,11 +1212,13 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             mdEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            mdEditor.replaceRange(selected_text, mdEditor.getCursor()).focus();
+            mdEditor.replaceRange(selected_text, mdEditor.getCursor());
+            mdEditor.focus();
           } else {
             selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-            mdEditor.replaceSelection('"' + selected_text + '"').focus();
+            mdEditor.replaceSelection('"' + selected_text + '"');
+            mdEditor.focus();
           }
         }
       };
@@ -1238,7 +1228,8 @@ var timeout, delay, selected_text, str, mynum,
             selected_text = htmlEditor.getSelection();  // Need to grab the Active Selection
 
             htmlEditor.replaceSelection("", htmlEditor.getCursor());
-            htmlEditor.replaceRange("''", htmlEditor.getCursor()).focus();
+            htmlEditor.replaceRange("''", htmlEditor.getCursor());
+            htmlEditor.focus();
             str = "'";
             mynum = str.length;
             start_cursor = htmlEditor.getCursor();  // Need to get the cursor position
@@ -1247,18 +1238,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             htmlEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            htmlEditor.replaceRange(selected_text, htmlEditor.getCursor()).focus();
+            htmlEditor.replaceRange(selected_text, htmlEditor.getCursor());
+            htmlEditor.focus();
           } else {
             selected_text = htmlEditor.getSelection();  // Need to grab the Active Selection
 
-            htmlEditor.replaceSelection("'" + selected_text + "'").focus();
+            htmlEditor.replaceSelection("'" + selected_text + "'");
+            htmlEditor.focus();
           }
         } else if ( activeEditor.value === "cssEditor" ) {
           if (!cssEditor.getSelection().split(" ").join("")) {
             selected_text = cssEditor.getSelection();  // Need to grab the Active Selection
 
             cssEditor.replaceSelection("", cssEditor.getCursor());
-            cssEditor.replaceRange("''", cssEditor.getCursor()).focus();
+            cssEditor.replaceRange("''", cssEditor.getCursor());
+            cssEditor.focus();
             str = "'";
             mynum = str.length;
             start_cursor = cssEditor.getCursor();  // Need to get the cursor position
@@ -1267,18 +1261,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             cssEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            cssEditor.replaceRange(selected_text, cssEditor.getCursor()).focus();
+            cssEditor.replaceRange(selected_text, cssEditor.getCursor());
+            cssEditor.focus();
           } else {
             selected_text = cssEditor.getSelection();  // Need to grab the Active Selection
 
-            cssEditor.replaceSelection("'" + selected_text + "'").focus();
+            cssEditor.replaceSelection("'" + selected_text + "'");
+            cssEditor.focus();
           }
         } else if ( activeEditor.value === "jsEditor" ) {
           if (!jsEditor.getSelection().split(" ").join("")) {
             selected_text = jsEditor.getSelection();  // Need to grab the Active Selection
 
             jsEditor.replaceSelection("", jsEditor.getCursor());
-            jsEditor.replaceRange("''", jsEditor.getCursor()).focus();
+            jsEditor.replaceRange("''", jsEditor.getCursor());
+            jsEditor.focus();
             str = "'";
             mynum = str.length;
             start_cursor = jsEditor.getCursor();  // Need to get the cursor position
@@ -1287,18 +1284,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             jsEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            jsEditor.replaceRange(selected_text, jsEditor.getCursor()).focus();
+            jsEditor.replaceRange(selected_text, jsEditor.getCursor());
+            jsEditor.focus();
           } else {
             selected_text = jsEditor.getSelection();  // Need to grab the Active Selection
 
-            jsEditor.replaceSelection("'" + selected_text + "'").focus();
+            jsEditor.replaceSelection("'" + selected_text + "'");
+            jsEditor.focus();
           }
         } else if ( activeEditor.value === "mdEditor" ) {
           if (!mdEditor.getSelection().split(" ").join("")) {
             selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
             mdEditor.replaceSelection("", mdEditor.getCursor());
-            mdEditor.replaceRange("''", mdEditor.getCursor()).focus();
+            mdEditor.replaceRange("''", mdEditor.getCursor());
+            mdEditor.focus();
             str = "'";
             mynum = str.length;
             start_cursor = mdEditor.getCursor();  // Need to get the cursor position
@@ -1307,11 +1307,13 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             mdEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            mdEditor.replaceRange(selected_text, mdEditor.getCursor()).focus();
+            mdEditor.replaceRange(selected_text, mdEditor.getCursor());
+            mdEditor.focus();
           } else {
             selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-            mdEditor.replaceSelection("'" + selected_text + "'").focus();
+            mdEditor.replaceSelection("'" + selected_text + "'");
+            mdEditor.focus();
           }
         }
       };
@@ -1321,7 +1323,8 @@ var timeout, delay, selected_text, str, mynum,
             selected_text = htmlEditor.getSelection();  // Need to grab the Active Selection
 
             htmlEditor.replaceSelection("", htmlEditor.getCursor());
-            htmlEditor.replaceRange("()", htmlEditor.getCursor()).focus();
+            htmlEditor.replaceRange("()", htmlEditor.getCursor());
+            htmlEditor.focus();
             str = ")";
             mynum = str.length;
             start_cursor = htmlEditor.getCursor();  // Need to get the cursor position
@@ -1330,18 +1333,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             htmlEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            htmlEditor.replaceRange(selected_text, htmlEditor.getCursor()).focus();
+            htmlEditor.replaceRange(selected_text, htmlEditor.getCursor());
+            htmlEditor.focus();
           } else {
             selected_text = htmlEditor.getSelection();  // Need to grab the Active Selection
 
-            htmlEditor.replaceSelection("(" + selected_text + ")").focus();
+            htmlEditor.replaceSelection("(" + selected_text + ")");
+            htmlEditor.focus();
           }
         } else if ( activeEditor.value === "cssEditor" ) {
           if (!cssEditor.getSelection().split(" ").join("")) {
             selected_text = cssEditor.getSelection();  // Need to grab the Active Selection
 
             cssEditor.replaceSelection("", cssEditor.getCursor());
-            cssEditor.replaceRange("()", cssEditor.getCursor()).focus();
+            cssEditor.replaceRange("()", cssEditor.getCursor());
+            cssEditor.focus();
             str = ")";
             mynum = str.length;
             start_cursor = cssEditor.getCursor();  // Need to get the cursor position
@@ -1350,18 +1356,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             cssEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            cssEditor.replaceRange(selected_text, cssEditor.getCursor()).focus();
+            cssEditor.replaceRange(selected_text, cssEditor.getCursor());
+            cssEditor.focus();
           } else {
             selected_text = cssEditor.getSelection();  // Need to grab the Active Selection
 
-            cssEditor.replaceSelection("(" + selected_text + ")").focus();
+            cssEditor.replaceSelection("(" + selected_text + ")");
+            cssEditor.focus();
           }
         } else if ( activeEditor.value === "jsEditor" ) {
           if (!jsEditor.getSelection().split(" ").join("")) {
             selected_text = jsEditor.getSelection();  // Need to grab the Active Selection
 
             jsEditor.replaceSelection("", jsEditor.getCursor());
-            jsEditor.replaceRange("()", jsEditor.getCursor()).focus();
+            jsEditor.replaceRange("()", jsEditor.getCursor());
+            jsEditor.focus();
             str = ")";
             mynum = str.length;
             start_cursor = jsEditor.getCursor();  // Need to get the cursor position
@@ -1370,18 +1379,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             jsEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            jsEditor.replaceRange(selected_text, jsEditor.getCursor()).focus();
+            jsEditor.replaceRange(selected_text, jsEditor.getCursor());
+            jsEditor.focus();
           } else {
             selected_text = jsEditor.getSelection();  // Need to grab the Active Selection
 
-            jsEditor.replaceSelection("(" + selected_text + ")").focus();
+            jsEditor.replaceSelection("(" + selected_text + ")");
+            jsEditor.focus();
           }
         } else if ( activeEditor.value === "mdEditor" ) {
           if (!mdEditor.getSelection().split(" ").join("")) {
             selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
             mdEditor.replaceSelection("", mdEditor.getCursor());
-            mdEditor.replaceRange("()", mdEditor.getCursor()).focus();
+            mdEditor.replaceRange("()", mdEditor.getCursor());
+            mdEditor.focus();
             str = ")";
             mynum = str.length;
             start_cursor = mdEditor.getCursor();  // Need to get the cursor position
@@ -1390,11 +1402,13 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             mdEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            mdEditor.replaceRange(selected_text, mdEditor.getCursor()).focus();
+            mdEditor.replaceRange(selected_text, mdEditor.getCursor());
+            mdEditor.focus();
           } else {
             selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-            mdEditor.replaceSelection("(" + selected_text + ")").focus();
+            mdEditor.replaceSelection("(" + selected_text + ")");
+            mdEditor.focus();
           }
         }
       };
@@ -1404,7 +1418,8 @@ var timeout, delay, selected_text, str, mynum,
             selected_text = htmlEditor.getSelection();  // Need to grab the Active Selection
 
             htmlEditor.replaceSelection("", htmlEditor.getCursor());
-            htmlEditor.replaceRange("[]", htmlEditor.getCursor()).focus();
+            htmlEditor.replaceRange("[]", htmlEditor.getCursor());
+            htmlEditor.focus();
             str = "]";
             mynum = str.length;
             start_cursor = htmlEditor.getCursor();  // Need to get the cursor position
@@ -1413,18 +1428,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             htmlEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            htmlEditor.replaceRange(selected_text, htmlEditor.getCursor()).focus();
+            htmlEditor.replaceRange(selected_text, htmlEditor.getCursor());
+            htmlEditor.focus();
           } else {
             selected_text = htmlEditor.getSelection();  // Need to grab the Active Selection
 
-            htmlEditor.replaceSelection("[" + selected_text + "]").focus();
+            htmlEditor.replaceSelection("[" + selected_text + "]");
+            htmlEditor.focus();
           }
         } else if ( activeEditor.value === "cssEditor" ) {
           if (!cssEditor.getSelection().split(" ").join("")) {
             selected_text = cssEditor.getSelection();  // Need to grab the Active Selection
 
             cssEditor.replaceSelection("", cssEditor.getCursor());
-            cssEditor.replaceRange("[]", cssEditor.getCursor()).focus();
+            cssEditor.replaceRange("[]", cssEditor.getCursor());
+            cssEditor.focus();
             str = "]";
             mynum = str.length;
             start_cursor = cssEditor.getCursor();  // Need to get the cursor position
@@ -1433,18 +1451,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             cssEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            cssEditor.replaceRange(selected_text, cssEditor.getCursor()).focus();
+            cssEditor.replaceRange(selected_text, cssEditor.getCursor());
+            cssEditor.focus();
           } else {
             selected_text = cssEditor.getSelection();  // Need to grab the Active Selection
 
-            cssEditor.replaceSelection("[" + selected_text + "]").focus();
+            cssEditor.replaceSelection("[" + selected_text + "]");
+            cssEditor.focus();
           }
         } else if ( activeEditor.value === "jsEditor" ) {
           if (!jsEditor.getSelection().split(" ").join("")) {
             selected_text = jsEditor.getSelection();  // Need to grab the Active Selection
 
             jsEditor.replaceSelection("", jsEditor.getCursor());
-            jsEditor.replaceRange("[]", jsEditor.getCursor()).focus();
+            jsEditor.replaceRange("[]", jsEditor.getCursor());
+            jsEditor.focus();
             str = "]";
             mynum = str.length;
             start_cursor = jsEditor.getCursor();  // Need to get the cursor position
@@ -1453,18 +1474,21 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             jsEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            jsEditor.replaceRange(selected_text, jsEditor.getCursor()).focus();
+            jsEditor.replaceRange(selected_text, jsEditor.getCursor());
+            jsEditor.focus();
           } else {
             selected_text = jsEditor.getSelection();  // Need to grab the Active Selection
 
-            jsEditor.replaceSelection("[" + selected_text + "]").focus();
+            jsEditor.replaceSelection("[" + selected_text + "]");
+            jsEditor.focus();
           }
         } else if ( activeEditor.value === "mdEditor" ) {
           if (!mdEditor.getSelection().split(" ").join("")) {
             selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
             mdEditor.replaceSelection("", mdEditor.getCursor());
-            mdEditor.replaceRange("[]", mdEditor.getCursor()).focus();
+            mdEditor.replaceRange("[]", mdEditor.getCursor());
+            mdEditor.focus();
             str = "]";
             mynum = str.length;
             start_cursor = mdEditor.getCursor();  // Need to get the cursor position
@@ -1473,11 +1497,13 @@ var timeout, delay, selected_text, str, mynum,
 
             // Code to move cursor back [x] amount of spaces. [x] is the data-val value.
             mdEditor.setCursor({line: cursorLine , ch : cursorCh -mynum });
-            mdEditor.replaceRange(selected_text, mdEditor.getCursor()).focus();
+            mdEditor.replaceRange(selected_text, mdEditor.getCursor());
+            mdEditor.focus();
           } else {
             selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-            mdEditor.replaceSelection("[" + selected_text + "]").focus();
+            mdEditor.replaceSelection("[" + selected_text + "]");
+            mdEditor.focus();
           }
         }
       };
@@ -1485,32 +1511,38 @@ var timeout, delay, selected_text, str, mynum,
         if ( activeEditor.value === "htmlEditor" ) {
           selected_text = htmlEditor.getSelection();  // Need to grab the Active Selection
 
-          htmlEditor.replaceSelection("function() {}").focus();
+          htmlEditor.replaceSelection("function() {}");
+          htmlEditor.focus();
         } else if ( activeEditor.value === "cssEditor" ) {
           alertify.alert("Can't add <strong>\"function() {}\"</strong> into CSS").set("basic", true);
         } else if ( activeEditor.value === "jsEditor" ) {
           selected_text = jsEditor.getSelection();  // Need to grab the Active Selection
 
-          jsEditor.replaceSelection("function() {}").focus();
+          jsEditor.replaceSelection("function() {}");
+          jsEditor.focus();
         }
       };
       $("[data-add=sym]").on("click", function() {
         if ( activeEditor.value === "htmlEditor" ) {
           selected_text = htmlEditor.getSelection();  // Need to grab the Active Selection
 
-          htmlEditor.replaceSelection(selected_text + this.textContent).focus();
+          htmlEditor.replaceSelection(selected_text + this.textContent);
+          htmlEditor.focus();
         } else if ( activeEditor.value === "cssEditor" ) {
           selected_text = cssEditor.getSelection();  // Need to grab the Active Selection
 
-          cssEditor.replaceSelection(selected_text + this.textContent).focus();
+          cssEditor.replaceSelection(selected_text + this.textContent);
+          cssEditor.focus();
         } else if ( activeEditor.value === "jsEditor" ) {
           selected_text = jsEditor.getSelection();  // Need to grab the Active Selection
 
-          jsEditor.replaceSelection(selected_text + this.textContent).focus();
+          jsEditor.replaceSelection(selected_text + this.textContent);
+          jsEditor.focus();
         } else if ( activeEditor.value === "mdEditor" ) {
           selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-          mdEditor.replaceSelection(selected_text + this.textContent).focus();
+          mdEditor.replaceSelection(selected_text + this.textContent);
+          mdEditor.focus();
         }
       });
 
@@ -1518,22 +1550,26 @@ var timeout, delay, selected_text, str, mynum,
       document.getElementById("lorem").onclick = function() {
         selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-        mdEditor.replaceSelection("Lorem ipsum dolor sit amet, consectetur adipisicing elit. Totam impedit dolore magnam dolor, atque quia dicta voluptatum. Nam impedit distinctio, tempore molestiae voluptatibus ducimus ullam! Molestiae consectetur, recusandae labore? Cupiditate.").focus();
+        mdEditor.replaceSelection("Lorem ipsum dolor sit amet, consectetur adipisicing elit. Totam impedit dolore magnam dolor, atque quia dicta voluptatum. Nam impedit distinctio, tempore molestiae voluptatibus ducimus ullam! Molestiae consectetur, recusandae labore? Cupiditate.");
+        mdEditor.focus();
       };
       document.getElementById("bold").onclick = function() {
         selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-        mdEditor.replaceSelection("**" + selected_text + "**").focus();
+        mdEditor.replaceSelection("**" + selected_text + "**");
+        mdEditor.focus();
       };
       document.getElementById("italic").onclick = function() {
         selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-        mdEditor.replaceSelection("*" + selected_text + "*").focus();
+        mdEditor.replaceSelection("*" + selected_text + "*");
+        mdEditor.focus();
       };
       document.getElementById("strike").onclick = function() {
         selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-        mdEditor.replaceSelection("<strike>" + selected_text + "</strike>").focus();
+        mdEditor.replaceSelection("<strike>" + selected_text + "</strike>");
+        mdEditor.focus();
       };
       document.getElementById("anchor").onclick = function() {
         alertify.prompt("Enter URL Below", "",
@@ -1541,7 +1577,8 @@ var timeout, delay, selected_text, str, mynum,
           selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
           mdEditor.replaceSelection("");
-          mdEditor.replaceSelection("["+ selected_text +"]("+ value +")").focus();
+          mdEditor.replaceSelection("["+ selected_text +"]("+ value +")");
+          mdEditor.focus();
         },
         function() {
           // User clicked cancel
@@ -1550,12 +1587,14 @@ var timeout, delay, selected_text, str, mynum,
       document.getElementById("quote").onclick = function() {
         selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-        mdEditor.replaceSelection("\n  > " + selected_text.replace(/\n/g,'\n  > ')).focus();
+        mdEditor.replaceSelection("\n  > " + selected_text.replace(/\n/g,'\n  > '));
+        mdEditor.focus();
       };
       document.getElementById("code").onclick = function() {
         selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-        mdEditor.replaceSelection("`" + selected_text + "`").focus();
+        mdEditor.replaceSelection("`" + selected_text + "`");
+        mdEditor.focus();
       };
       document.getElementById("img").onclick = function() {
         alertify.prompt("Enter Image URL Below", "",
@@ -1563,7 +1602,8 @@ var timeout, delay, selected_text, str, mynum,
           selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
           mdEditor.replaceSelection("");
-          mdEditor.replaceSelection("!["+ selected_text +"]("+ value +")").focus();
+          mdEditor.replaceSelection("!["+ selected_text +"]("+ value +")");
+          mdEditor.focus();
         },
         function() {
           // User clicked cancel
@@ -1576,415 +1616,140 @@ var timeout, delay, selected_text, str, mynum,
         for (i = 0, len = selected_text.split("\n").length, text = ""; i < len; i++) {
             text += i + 1 + ". " + selected_text.split("\n")[i] + "\n  ";
         }
-        mdEditor.replaceSelection("\n  " + text).focus();
+        mdEditor.replaceSelection("\n  " + text);
+        mdEditor.focus();
       };
       document.getElementById("list-ul").onclick = function() {
         selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-        mdEditor.replaceSelection("\n  - " + selected_text.replace(/\n/g,'\n  - ')).focus();
+        mdEditor.replaceSelection("\n  - " + selected_text.replace(/\n/g,'\n  - '));
+        mdEditor.focus();
       };
       document.getElementById("h1").onclick = function() {
         selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-        mdEditor.replaceSelection("# " + selected_text).focus();
+        mdEditor.replaceSelection("# " + selected_text);
+        mdEditor.focus();
       };
       document.getElementById("h2").onclick = function() {
         selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-        mdEditor.replaceSelection("## " + selected_text).focus();
+        mdEditor.replaceSelection("## " + selected_text);
+        mdEditor.focus();
       };
       document.getElementById("h3").onclick = function() {
         selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-        mdEditor.replaceSelection("### " + selected_text).focus();
+        mdEditor.replaceSelection("### " + selected_text);
+        mdEditor.focus();
       };
       document.getElementById("h4").onclick = function() {
         selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-        mdEditor.replaceSelection("#### " + selected_text).focus();
+        mdEditor.replaceSelection("#### " + selected_text);
+        mdEditor.focus();
       };
       document.getElementById("h5").onclick = function() {
         selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-        mdEditor.replaceSelection("##### " + selected_text).focus();
+        mdEditor.replaceSelection("##### " + selected_text);
+        mdEditor.focus();
       };
       document.getElementById("h6").onclick = function() {
         selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-        mdEditor.replaceSelection("###### " + selected_text).focus();
+        mdEditor.replaceSelection("###### " + selected_text);
+        mdEditor.focus();
       };
       document.getElementById("hr").onclick = function() {
         selected_text = mdEditor.getSelection();  // Need to grab the Active Selection
 
-        mdEditor.replaceSelection(selected_text + "\n\n----------\n\n").focus();
+        mdEditor.replaceSelection(selected_text + "\n\n----------\n\n");
+        mdEditor.focus();
       };
     },
     initdataURLGrabber = function() {
-      var logo            = document.querySelector("[data-action=dataurloutput]"),
-          imgUrl          = document.querySelector("[data-url=dataurlimgurl]"),
-          dataurlholder   = document.getElementById("dataurlholder"),
-          JSimgUrl        = document.querySelector("[data-url=dataurlimgurl]");
+    var logo            = document.querySelector("[data-action=dataurloutput]"),
+        imgUrl          = document.querySelector("[data-url=dataurlimgurl]"),
+        dataurlholder   = document.getElementById("dataurlholder"),
+        JSimgUrl        = document.querySelector("[data-url=dataurlimgurl]");
 
-      $("#dataurl").on("change", function() {
-        (this.checked) ? $("input[name=menubar].active").trigger("click") : "";
-      });
+    $("#dataurl").on("change", function() {
+      (this.checked) ? $("input[name=menubar].active").trigger("click") : "";
+    });
+      
+    // Save Site Title Value for LocalStorage
+    function displayDURL(file) {
+      var reader = new FileReader();
 
-      // Save Site Title Value for LocalStorage
-      function displayDURL(file) {
-        var reader = new FileReader();
-
-        reader.onload = function(e) {
-          var img = new Image();
-          img.src = e.target.result;
-          img.onload = function() {
-            var dataUrl = e.target.result;
-            logo.src = dataUrl;
-            imgUrl.value = logo.src;
-          };
+      reader.onload = function(e) {
+        var img = new Image();
+        img.src = e.target.result;
+        img.onload = function() {
+          var dataUrl = e.target.result;
+          logo.src = dataUrl;
+          imgUrl.value = logo.src;
         };
-        reader.readAsDataURL(file);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Select all dataurl when textbox clicked
+    JSimgUrl.onfocus = function() {
+      this.select();
+      return false;
+    };
+
+    $("#inputdataurl").change(function(e) {
+      var file = e.target.files[0];
+      displayDURL(file);
+      $(".checkdataurl").removeClass("hide");
+    });
+
+    // Drag and drop image load
+    dataurlholder.ondragover = function () {
+      this.className = "block fn txtcenter pointer hover";
+      return false;
+    };
+    dataurlholder.ondragend = function () {
+      this.className = "block fn txtcenter pointer";
+      return false;
+    };
+    dataurlholder.ondrop = function(e) {
+      this.className = "block fn txtcenter pointer";
+      e.preventDefault();
+      var file = e.dataTransfer.files[0];
+      displayDURL(file);
+      $(".checkdataurl").removeClass("hide");
+    };
+
+    // Insert DataURL into Active Editor
+    document.querySelector("[data-action=dataURLtoEditor]").onclick = function() {
+      if ( activeEditor.value === "htmlEditor" ) {
+        htmlEditor.replaceSelection(imgUrl.value);
+        htmlEditor.focus();
+      } else if ( activeEditor.value === "cssEditor" ) {
+        cssEditor.replaceSelection(imgUrl.value);
+        cssEditor.focus();
+      } else if ( activeEditor.value === "jsEditor" ) {
+        jsEditor.replaceSelection(imgUrl.value);
+        jsEditor.focus();
+      } else if ( activeEditor.value === "mdEditor" ) {
+        mdEditor.replaceSelection(imgUrl.value);
+        mdEditor.focus();
       }
-
-      // Select all dataurl when textbox clicked
-      JSimgUrl.onfocus = function() {
-        this.select();
-        return false;
-      };
-
-      $("#inputdataurl").change(function(e) {
-        var file = e.target.files[0];
-        displayDURL(file);
-        $(".checkdataurl").removeClass("hide");
-      });
-
-      // Drag and drop image load
-      dataurlholder.ondragover = function () {
-        this.className = "block fn txtcenter pointer hover";
-        return false;
-      };
-      dataurlholder.ondragend = function () {
-        this.className = "block fn txtcenter pointer";
-        return false;
-      };
-      dataurlholder.ondrop = function(e) {
-        this.className = "block fn txtcenter pointer";
-        e.preventDefault();
-        var file = e.dataTransfer.files[0];
-        displayDURL(file);
-        $(".checkdataurl").removeClass("hide");
-      };
-
-      // Insert DataURL into Active Editor
-      document.querySelector("[data-action=dataURLtoEditor]").onclick = function() {
-        if ( activeEditor.value === "htmlEditor" ) {
-          htmlEditor.replaceSelection(imgUrl.value).focus();
-        } else if ( activeEditor.value === "cssEditor" ) {
-          cssEditor.replaceSelection(imgUrl.value).focus();
-        } else if ( activeEditor.value === "jsEditor" ) {
-          jsEditor.replaceSelection(imgUrl.value).focus();
-        } else if ( activeEditor.value === "mdEditor" ) {
-          mdEditor.replaceSelection(imgUrl.value).focus();
-        }
-        $("#dataurl").trigger("click");
-      };
-    },
+      $("#dataurl").trigger("click");
+    };
+  },
     responsiveUI = function() {
       // Splitter Theme
       $("#mainSplitter, #splitContainer, #leftSplitter, #rightSplitter").jqxSplitter({
         theme: "metro"
       });
-      
-      // Handle dropdown list for Editors
-      $("[data-call=dropdown]").click(function(e) {
-        $("input[name=menubar].active").trigger("click");
-        
-        if ($(this).hasClass('openeddropdown')) {
-          $(".editoractionlist").addClass('hide');
-          $(this).removeClass('openeddropdown');
-          return false;
-        } else if ($("[data-call=dropdown].openeddropdown").is(":visible")) {
-          $("[data-call=dropdown]").removeClass('openeddropdown');
-          return false;
-        }
-
-        // If no preprocessor is selected dont show compile
-        var htmlSelected = $("#html-preprocessor option:selected").val();
-        var cssSelected  = $("#css-preprocessor  option:selected").val();
-        var jsSelected   = $("#js-preprocessor   option:selected").val();
-        
-        // Check HTML
-        if ($(this).hasClass("htmlarea")) {
-          if ( activeEditor.value == "mdEditor") {
-            mdEditor.focus();
-            $(".editoractionlist li").addClass('hide');
-            $(".texttransform").removeClass('hide');
-            offset = $(this).offset();
-            $(".editoractionlist").css({
-              top: offset.top + 21 - 4,
-              left: offset.left - $(".editoractionlist").width() + 10
-            });
-          } else {
-            htmlEditor.focus();
-            activeEditor.value = 'htmlEditor';
-          }
-          if (activeEditor.value == "htmlEditor") {
-            if ( htmlSelected == "none") {
-              htmlEditor.focus();
-              activeEditor.value = 'htmlEditor';
-              $(".viewcompiledcode").text('Run html2jade');
-              $(".minifycode, .tidycode").removeClass('hide');
-              $("[data-action=tidy]").text('Tidy HTML');
-              $("[data-action=minify]").text('Minify HTML');
-              offset = $(this).offset();
-              $(".editoractionlist").css({
-                top: offset.top + 21 - 4,
-                left: offset.left - $(".editoractionlist").width() + 10
-              });
-            } else if ( htmlSelected == "jade") {
-              htmlEditor.focus();
-              activeEditor.value = 'htmlEditor';
-              $(".viewcompiledcode").removeClass('hide');
-              $(".minifycode, .tidycode").removeClass('hide');
-              if (htmlSelected == "jade") {
-                $(".minifycode, .tidycode").addClass('hide');
-              }
-              $(".viewcompiledcode").text('Convert ' + $("#html-preprocessor option:selected").val() + ' to HTML');
-              $("[data-action=tidy]").text('Tidy ' + $("#html-preprocessor option:selected").val());
-              $("[data-action=minify]").text('Minify ' + $("#html-preprocessor option:selected").val());
-              offset = $(this).offset();
-              $(".editoractionlist").css({
-                top: offset.top + 21 - 4,
-                left: offset.left - $(".editoractionlist").width() + 10
-              });
-            }
-          }
-        }
-        // Check CSS
-        if ($(this).hasClass("cssarea")) {
-          cssEditor.focus();
-          activeEditor.value = 'cssEditor';
-          if (activeEditor.value == "cssEditor") {
-            if (cssSelected == "none") {
-              $(".viewcompiledcode").removeClass('hide');
-              $(".viewcompiledcode").text('Run css2stylus');
-              $(".minifycode, .tidycode").removeClass('hide');
-              $("[data-action=tidy]").text('Tidy CSS');
-              $("[data-action=minify]").text('Minify CSS');
-              offset = $(this).offset();
-              $(".editoractionlist").css({
-                top: offset.top + 21 - 4,
-                left: offset.left - $(".editoractionlist").width() + 10
-              });
-            } else {
-              $(".viewcompiledcode").removeClass('hide');
-              $(".minifycode, .tidycode").removeClass('hide');
-              if (cssSelected == "stylus") {
-                $(".minifycode, .tidycode").addClass('hide');
-              }
-              $(".viewcompiledcode").text('Convert ' + $("#css-preprocessor option:selected").val() + ' to CSS');
-              $("[data-action=tidy]").text('Tidy ' + $("#css-preprocessor option:selected").val());
-              $("[data-action=minify]").text('Minify ' + $("#css-preprocessor option:selected").val());
-              offset = $(this).offset();
-              $(".editoractionlist").css({
-                top: offset.top + 21 - 4,
-                left: offset.left - $(".editoractionlist").width() + 10
-              });
-            }
-          }
-        }
-        // Check Javascript
-        if ($(this).hasClass("jsarea")) {
-          jsEditor.focus();
-          activeEditor.value = 'jsEditor';
-          if (activeEditor.value == "jsEditor") {
-            if ( jsSelected == "none") {
-              $(".viewcompiledcode").text('Run js2Coffee');
-              $(".minifycode, .tidycode").removeClass('hide');
-              $("[data-action=tidy]").text('Tidy Javascript');
-              $("[data-action=minify]").text('Minify Javascript');
-              offset = $(this).offset();
-              $(".editoractionlist").css({
-                top: offset.top + 21 - 4,
-                left: offset.left - $(".editoractionlist").width() + 10
-              });
-            } else {
-              $(".viewcompiledcode").removeClass('hide');
-              $(".minifycode, .tidycode").removeClass('hide');
-              if (jsSelected == "typescript") {
-                $(".minifycode, .tidycode, .viewcompiledcode").addClass('hide');
-              } else if (jsSelected == "coffeescript") {
-                $(".minifycode, .tidycode").addClass('hide');
-              } else if (jsSelected == "babel") {
-                $(".minifycode, .tidycode").addClass('hide');
-              }
-              $(".viewcompiledcode").text('Convert ' + $("#js-preprocessor option:selected").val() + ' to Javascript');
-              $("[data-action=tidy]").text('Tidy ' + $("#js-preprocessor option:selected").val());
-              $("[data-action=minify]").text('Minify ' + $("#js-preprocessor option:selected").val());
-              offset = $(this).offset();
-              $(".editoractionlist").css({
-                top: offset.top + 21 - 4,
-                left: offset.left - $(".editoractionlist").width() + 10
-              });
-            }
-          }
-        }
-        
-        if ($('.editoractionlist').is(':visible')) {
-          offset = $(this).offset();
-          $(".editoractionlist").css({
-            top: offset.top + 21 - 4,
-            left: offset.left - $(".editoractionlist").width() + 10
-          });
-          return false;
-        } else if ($('.editoractionlist').hasClass('hide')) {
-          $(".editoractionlist").removeClass('hide');
-          $(this).addClass('openeddropdown');
-          return false;
-        }
-        return false;
-      });
-      $('[data-action=compile]').click(function() {
-        $(".editoractionlist").removeClass('hide');
-        
-        // If no preprocessor is selected dont show compile
-        var htmlSelected = $("#html-preprocessor option:selected").val();
-        var cssSelected = $("#css-preprocessor  option:selected").val();
-        var jsSelected   = $("#js-preprocessor   option:selected").val();
-        
-        // Check HTML
-        if (activeEditor.value === "htmlEditor") {
-          if ( htmlSelected == "none") {
-            $("#html-preprocessor").val("jade").trigger("change");
-            var options = {
-                pretty: true
-            };
-            Html2Jade.convertHtml(htmlEditor.getValue(), {selectById: true}, function (err, jadeString) {
-              if(err) {
-                console.error(err);
-              } else {
-                if (!/<html>/.test(htmlEditor.getValue())) {
-                  jadeString = jadeString
-                                .replace('html\n', '')
-                                .replace('head\n', '')
-                                .replace(/^\s\s/, '')
-                                .replace(/\n\s\s/, '\n');
-                }
-
-                if (!/<body>/.test(htmlEditor.getValue())) {
-                  jadeString = jadeString
-                                .replace(/.*body\n/, '')
-                                .replace(/^\s\s/, '')
-                                .replace(/\n\s\s/, '\n');
-                };
-                htmlEditor.setValue(jadeString);
-              }
-            });
-            $(".editoractionlist").addClass('hide');
-          } else if ( htmlSelected == "jade") {
-            $("#html-preprocessor").val("none").trigger("change");
-            htmlContent = jade.render(htmlEditor.getValue(), options);
-            htmlEditor.setValue(htmlContent);
-            beautifyHTML();
-            $(".editoractionlist").addClass('hide');
-          }
-        }
-
-        // Check CSS
-        if (activeEditor.value === "cssEditor") {
-          if ( cssSelected == "none") {
-            $("#css-preprocessor").val("stylus").trigger("change");
-            $(".viewcompiledcode").removeClass('hide');
-            var css = cssEditor.getValue();
-            var converter = new Css2Stylus.Converter(css);
-            converter.processCss();
-            cssEditor.setValue(converter.getStylus());
-            $(".editoractionlist").addClass('hide');
-          } else if (cssSelected == "stylus") {
-            $("#css-preprocessor").val("none").trigger("change");
-            $(".viewcompiledcode").removeClass('hide');
-            var cssVal = cssEditor.getValue();
-            stylus(cssVal).render(function(err, out) {
-              if(err !== null) {
-                console.error("something went wrong");
-              } else {
-                cssEditor.setValue(out);
-                $('#css-preprocessor option').filter(function() { 
-                  return ($(this).text() == 'None');
-                }).prop('selected', true);
-              }
-            });
-            $(".editoractionlist").addClass('hide');
-          } else if (cssSelected == "less") {
-            $("#css-preprocessor").val("none").trigger("change");
-            $(".viewcompiledcode").removeClass('hide');
-            var cssVal = cssEditor.getValue();
-            less.render(cssVal, function (e, output) {
-              cssEditor.setValue(output.css);
-              $('#css-preprocessor option').filter(function() { 
-                return ($(this).text() == 'None');
-              }).prop('selected', true);
-            });
-            $(".editoractionlist").addClass('hide');
-          } else if (cssSelected == "scss" || cssSelected == "sass") {
-            $("#css-preprocessor").val("none").trigger("change");
-            $(".viewcompiledcode").removeClass('hide');
-            var cssVal = cssEditor.getValue();
-
-            sass.compile(cssVal, function(result) {
-              cssEditor.setValue(result.text);
-            });
-            $('#css-preprocessor option').filter(function() { 
-              return ($(this).text() == 'None');
-            }).prop('selected', true);
-            $(".editoractionlist").addClass('hide');
-          }
-        }
-
-        // Check Javascript
-        if (activeEditor.value === "jsEditor") {
-          if ( jsSelected == "none") {
-            $("#js-preprocessor").val("coffeescript").trigger("change");
-            result = js2coffee.build(jsEditor.getValue());
-            jsEditor.setValue(result.code);
-            $(".editoractionlist").addClass('hide');
-          } else if ( jsSelected == "coffeescript") {
-            $("#js-preprocessor").val("none").trigger("change");
-            jsContent = CoffeeScript.compile(jsEditor.getValue(), { bare: true });
-            jsEditor.setValue(jsContent);
-            beautifyJS();
-            $(".editoractionlist").addClass('hide');
-          } else if ( jsSelected == "babel") {
-            $("#js-preprocessor").val("none").trigger("change");
-            var result = Babel.transform(jsEditor.getValue(), {
-              presets: ['latest', 'stage-2', 'react']
-            });
-            jsContent = result.code;
-            jsEditor.setValue(jsContent);
-            beautifyJS();
-            $(".editoractionlist").addClass('hide');
-            $("#js-preprocessor").val("none").trigger("change");
-          }
-        }
-      });
-      
-      // Hide dropdown if other elements are clicked
-      $("header a, header label").click(function() {
-        if ($(".editoractionlist").is(':visible')) {
-          $(".editoractionlist").addClass('hide');
-        }
-      });
-      $(".sidebtns a:not([data-call=dropdown])").click(function() {
-        if ($(".editoractionlist").is(':visible')) {
-          $(".editoractionlist").addClass('hide');
-        }
-      });
 
       // Select active editor when clicked/touched
       $("#htmlEditor, #cssEditor, #jsEditor, #mdEditor").on("mousedown touchend", function() {
         $("input[name=menubar].active").trigger("click");
-        if ($(".editoractionlist").is(':visible')) {
-          $(".editoractionlist").addClass('hide');
-        }
 
         if ( $(this).attr("id") === "htmlEditor" ) {
           activeEditor.value = "htmlEditor";
@@ -2123,10 +1888,6 @@ var timeout, delay, selected_text, str, mynum,
         var checkbox = document.getElementById("changeGrid");
         (checkbox.checked) ? gridChecked() : gridNotChecked();
         (checkbox.checked) ? localStorage.setItem("gridSetting", "true") : localStorage.setItem("gridSetting", "false");
-        
-        if ($("[data-toggle=previewdimensions]").is(":visible")) {
-          $("[data-output=dimensions]").text($(".preview-editor").css('width') + ", " + $(".preview-editor").css('height'));
-        }
       }
       $("#changeGrid").on("change", function() {
         GridScheme();
@@ -2294,9 +2055,6 @@ var timeout, delay, selected_text, str, mynum,
             panels: [{ size: "0%"},
                      { size: "100%"}]
           });
-          if ($("[data-toggle=previewdimensions]").is(":visible")) {
-            $("[data-output=dimensions]").text($(".preview-editor").css('width') + ", " + $(".preview-editor").css('height'));
-          }
         }
       };
       
@@ -2319,78 +2077,22 @@ var timeout, delay, selected_text, str, mynum,
       options = {
           success: function(file) {
             if (file[0].link.toLowerCase().substring(file[0].link.length - 5) === ".html") {
-              htmlEditor.setValue("");
-              $("#html-preprocessor").val("none").trigger("change");
               download_to_editor(file[0].link, htmlEditor);
             } else if (file[0].link.toLowerCase().substring(file[0].link.length - 5) === ".jade") {
-              htmlEditor.setValue("");
-              $("#html-preprocessor").val("jade").trigger("change");
               download_to_editor(file[0].link, htmlEditor);
             } else if (file[0].link.toLowerCase().substring(file[0].link.length - 4) === ".css") {
-              cssEditor.setValue("");
-              $("#css-preprocessor").val("none").trigger("change");
-              download_to_editor(file[0].link, cssEditor);
-            } else if (file[0].link.toLowerCase().substring(file[0].link.length - 5) === ".styl") {
-              cssEditor.setValue("");
-              $("#css-preprocessor").val("stylus").trigger("change");
-              download_to_editor(file[0].link, cssEditor);
-            } else if (file[0].link.toLowerCase().substring(file[0].link.length - 5) === ".less") {
-              cssEditor.setValue("");
-              $("#css-preprocessor").val("less").trigger("change");
-              download_to_editor(file[0].link, cssEditor);
-            } else if (file[0].link.toLowerCase().substring(file[0].link.length - 5) === ".scss") {
-              cssEditor.setValue("");
-              $("#css-preprocessor").val("scss").trigger("change");
-              download_to_editor(file[0].link, cssEditor);
-            } else if (file[0].link.toLowerCase().substring(file[0].link.length - 5) === ".sass") {
-              cssEditor.setValue("");
-              $("#css-preprocessor").val("sass").trigger("change");
               download_to_editor(file[0].link, cssEditor);
             } else if (file[0].link.toLowerCase().substring(file[0].link.length - 3) === ".js") {
-              jsEditor.setValue("");
-              $("#js-preprocessor").val("none").trigger("change");
               download_to_editor(file[0].link, jsEditor);
             } else if (file[0].link.toLowerCase().substring(file[0].link.length - 7) === ".coffee") {
-              jsEditor.setValue("");
-              $("#js-preprocessor").val("coffeescript").trigger("change");
-              download_to_editor(file[0].link, jsEditor);
-            } else if (file[0].link.toLowerCase().substring(file[0].link.length - 3) === ".ts") {
-              jsEditor.setValue("");
-              $("#js-preprocessor").val("typescript").trigger("change");
-              download_to_editor(file[0].link, jsEditor);
-            } else if (file[0].link.toLowerCase().substring(file[0].link.length - 3) === ".es") {
-              jsEditor.setValue("");
-              $("#js-preprocessor").val("babel").trigger("change");
-              download_to_editor(file[0].link, jsEditor);
-            } else if (file[0].link.toLowerCase().substring(file[0].link.length - 4) === ".es6") {
-              jsEditor.setValue("");
-              $("#js-preprocessor").val("babel").trigger("change");
-              download_to_editor(file[0].link, jsEditor);
-            } else if (file[0].link.toLowerCase().substring(file[0].link.length - 4) === ".jsx") {
-              jsEditor.setValue("");
-              $("#js-preprocessor").val("babel").trigger("change");
               download_to_editor(file[0].link, jsEditor);
             } else if (file[0].link.toLowerCase().substring(file[0].link.length - 3) === ".md") {
-              mdEditor.setValue("");
               download_to_editor(file[0].link, mdEditor);
-            } else if (file[0].link.toLowerCase().substring(file[0].link.length - 3) === ".svg") {
-              htmlEditor.setValue("");
-              $("#html-preprocessor").val("none").trigger("change");
+            } else if (file[0].link.toLowerCase().substring(file[0].link.length - 4) === ".svg") {
               download_to_editor(file[0].link, htmlEditor);
             } else {
               alertify.error("Sorry kodeWeave does not support that file type!");
             }
-            
-            if (!changePrev.checked) {
-              $("#runeditor").trigger("click");
-            }
-            setTimeout(function() {
-              mdEditor.setOption("paletteHints", "true");
-              htmlEditor.setOption("paletteHints", "true");
-              cssEditor.setOption("paletteHints", "true");
-              jsEditor.setOption("paletteHints", "true");
-            }, 300);
-            
             window.close();
           },
           cancel: function() {
@@ -2398,7 +2100,7 @@ var timeout, delay, selected_text, str, mynum,
           },
           linkType: "direct", // "preview" or "direct"
           multiselect: false, // true or false
-          extensions: [".html", ".jade", ".css", ".styl", ".less", ".js", ".json", ".es", ".es6", ".ts", ".jsx", ".coffee", ".md", ".svg"]
+          extensions: [".html", ".jade", ".css", ".js", ".coffee", ".md", ".svg"]
       };
 
       document.querySelector("[data-action=open-dropbox]").onclick = function() {
@@ -2420,72 +2122,19 @@ var timeout, delay, selected_text, str, mynum,
           // var path = input.value.replace(/.*(\/|\\)/, '');
           var path = input.value;
           if (path.toLowerCase().substring(path.length - 5) === ".html") {
-            htmlEditor.setValue("");
             htmlEditor.setValue( e.target.result );
-            $("#html-preprocessor").val("none").trigger("change");
           } else if (path.toLowerCase().substring(path.length - 5) === ".jade") {
-            htmlEditor.setValue("");
             htmlEditor.setValue( e.target.result );
-            $("#html-preprocessor").val("jade").trigger("change");
-          } else if (path.toLowerCase().substring(path.length - 4) === ".pug") {
-            htmlEditor.setValue("");
-            htmlEditor.setValue( e.target.result );
-            $("#html-preprocessor").val("jade").trigger("change");
           } else if (path.toLowerCase().substring(path.length - 4) === ".css") {
-            cssEditor.setValue("");
             cssEditor.setValue( e.target.result );
-            $("#css-preprocessor").val("none").trigger("change");
-          } else if (path.toLowerCase().substring(path.length - 5) === ".styl") {
-            cssEditor.setValue("");
-            cssEditor.setValue( e.target.result );
-            $("#css-preprocessor").val("stylus").trigger("change");
-          } else if (path.toLowerCase().substring(path.length - 5) === ".less") {
-            cssEditor.setValue("");
-            cssEditor.setValue( e.target.result );
-            $("#css-preprocessor").val("less").trigger("change");
-          } else if (path.toLowerCase().substring(path.length - 5) === ".scss") {
-            cssEditor.setValue("");
-            cssEditor.setValue( e.target.result );
-            $("#css-preprocessor").val("scss").trigger("change");
-          } else if (path.toLowerCase().substring(path.length - 5) === ".sass") {
-            cssEditor.setValue("");
-            cssEditor.setValue( e.target.result );
-            $("#css-preprocessor").val("sass").trigger("change");
           } else if (path.toLowerCase().substring(path.length - 3) === ".js") {
-            jsEditor.setValue("");
             jsEditor.setValue( e.target.result );
-            $("#js-preprocessor").val("none").trigger("change");
           } else if (path.toLowerCase().substring(path.length - 7) === ".coffee") {
-            jsEditor.setValue("");
             jsEditor.setValue( e.target.result );
-            $("#js-preprocessor").val("coffeescript").trigger("change");
-          } else if (path.toLowerCase().substring(path.length - 3) === ".ts") {
-            jsEditor.setValue("");
-            jsEditor.setValue( e.target.result );
-            $("#js-preprocessor").val("typescript").trigger("change");
-          } else if (path.toLowerCase().substring(path.length - 4) === ".jsx") {
-            jsEditor.setValue("");
-            jsEditor.setValue( e.target.result );
-            $("#js-preprocessor").val("babel").trigger("change");
-          } else if (path.toLowerCase().substring(path.length - 3) === ".es") {
-            jsEditor.setValue("");
-            jsEditor.setValue( e.target.result );
-            $("#js-preprocessor").val("babel").trigger("change");
-          } else if (path.toLowerCase().substring(path.length - 4) === ".es6") {
-            jsEditor.setValue("");
-            jsEditor.setValue( e.target.result );
-            $("#js-preprocessor").val("babel").trigger("change");
-          } else if (path.toLowerCase().substring(path.length - 5) === ".json") {
-            jsEditor.setValue("");
-            jsEditor.setValue( e.target.result );
-            $("#js-preprocessor").val("none").trigger("change");
           } else if (path.toLowerCase().substring(path.length - 3) === ".md") {
-            mdEditor.setValue("");
             mdEditor.setValue( e.target.result );
-          } else if (path.toLowerCase().substring(path.length - 4) === ".svg") {
-            htmlEditor.setValue("");
+          } else if (path.toLowerCase().substring(path.length - 3) === ".svg") {
             htmlEditor.setValue( e.target.result );
-            $("#html-preprocessor").val("none").trigger("change");
           } else {
             alertify.error("Sorry kodeWeave does not support that file type!");
           }
@@ -2501,22 +2150,63 @@ var timeout, delay, selected_text, str, mynum,
       }
 
       singleFileDownload();
+      
+      desktopExportation();
+      
+      // Check Application Fields (For Download)
+      $("#load").on("change", function(evt) {
+        if ( $(this).val() === "" ) {
+          $(".watch").addClass("hide");
+        } else {
+          $(".watch").removeClass("hide");
+          var file = evt.target.files[0];
+          desktopExport(file);
+          $(".download-dialog").addClass("imagehasloaded");
+          $("#imagehasloaded").prop("checked", true);
+          return false;
+        }
+      });
     },
     preprocessors = function() {
-      $("[data-call=settings]").click(function() {
+      $(".settings").click(function() {
         $("input[name=menubar].active").trigger("click");
+        $(".preprocessor").addClass("hide");
         if ($(this).hasClass("htmlSetting")) {
-          $("#html-preprocessors").attr("checked", true);
+          $(".html-preprocessor").removeClass("hide");
         } else if ($(this).hasClass("cssSetting")) {
-          $("#css-preprocessors").attr("checked", true);
+          $(".css-preprocessor").removeClass("hide");
         } else if ($(this).hasClass("jsSetting")) {
-          $("#js-preprocessors").attr("checked", true);
+          $(".js-preprocessor").removeClass("hide");
+        }
+        if (document.getElementById("html-preprocessor").value == "none") {
+          if (!htmlEditor.getValue) {
+            $(".html-preprocessor-convert").addClass("hide");
+          }
+        } else if (document.getElementById("html-preprocessor").value == "jade") {
+          if (!htmlEditor.getValue) {
+            $(".html-preprocessor-convert").addClass("hide");
+          }
+        }
+        if (document.getElementById("js-preprocessor").value == "none") {
+          if (!jsEditor.getValue) {
+            $(".js-preprocessor-convert").addClass("hide");
+          }
+        } else if (document.getElementById("js-preprocessor").value == "coffeescript") {
+          if (!jsEditor.getValue) {
+            $(".js-preprocessor-convert").addClass("hide");
+          }
         }
         $("[data-action=preprocessors]").fadeIn();
       });
       $(".confirm-preprocessor").click(function() {
         // Default fadeout speed is 400ms
         $("[data-action=preprocessors]").fadeOut();
+        // Hiding all other preprocessors at 400ms
+        // Delay only works with animating methods
+        // Using setTimeout as an alternative:
+        setTimeout(function() {
+          $(".preprocessor").addClass("hide");
+        }, 400);
       });
       // Preprocessors (Doesn't compile to preview)
       $("#html-preprocessor").on("change", function() {
@@ -2526,12 +2216,10 @@ var timeout, delay, selected_text, str, mynum,
           htmlEditor.setOption("mode", "text/html");
           htmlEditor.setOption("gutters", ["CodeMirror-lint-markers", "CodeMirror-linenumbers", "CodeMirror-foldgutter"]);
           // htmlEditor.refresh();
-          $(".html-editor").css('background-image', 'url("assets/html5.svg")');
         } else if ( valueSelected == "jade") {
           htmlEditor.setOption("mode", "text/x-jade");
           htmlEditor.setOption("gutters", ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]);
           // htmlEditor.refresh();
-          $(".html-editor").css('background-image', 'url("assets/jade.svg")');
         } else {
           htmlEditor.setOption("mode", "text/html");
           htmlEditor.setOption("gutters", ["CodeMirror-lint-markers", "CodeMirror-linenumbers", "CodeMirror-foldgutter"]);
@@ -2548,7 +2236,6 @@ var timeout, delay, selected_text, str, mynum,
           cssEditor.setOption("gutters", ["CodeMirror-lint-markers", "CodeMirror-linenumbers", "CodeMirror-foldgutter"]);
           // cssEditor.setOption("lint", true);
           // cssEditor.refresh();
-          $(".css-editor").css('background-image', 'url("assets/css3.svg")');
         } else if ( valueSelected == "stylus") {
           cssEditor.setOption("mode", "text/x-styl");
           cssEditor.setOption("gutters", ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]);
@@ -2558,37 +2245,6 @@ var timeout, delay, selected_text, str, mynum,
           }, 300);
           // cssEditor.setOption("lint", false);
           // cssEditor.refresh();
-          $(".css-editor").css('background-image', 'url("assets/stylus.svg")');
-        } else if ( valueSelected == "less") {
-          cssEditor.setOption("mode", "text/x-less");
-          cssEditor.setOption("gutters", ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]);
-          setTimeout(function() {
-            $(".CodeMirror-lint-mark-error, .CodeMirror-lint-mark-error-metro").removeClass("CodeMirror-lint-mark-error CodeMirror-lint-mark-error-metro");
-            $(".CodeMirror-lint-mark-warning, .CodeMirror-lint-mark-warning-metro").removeClass("CodeMirror-lint-mark-warning CodeMirror-lint-mark-warning-metro");
-          }, 300);
-          // cssEditor.setOption("lint", false);
-          // cssEditor.refresh();
-          $(".css-editor").css('background-image', 'url("assets/scss.svg")');
-        } else if ( valueSelected == "scss") {
-          cssEditor.setOption("mode", "text/x-scss");
-          cssEditor.setOption("gutters", ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]);
-          setTimeout(function() {
-            $(".CodeMirror-lint-mark-error, .CodeMirror-lint-mark-error-metro").removeClass("CodeMirror-lint-mark-error CodeMirror-lint-mark-error-metro");
-            $(".CodeMirror-lint-mark-warning, .CodeMirror-lint-mark-warning-metro").removeClass("CodeMirror-lint-mark-warning CodeMirror-lint-mark-warning-metro");
-          }, 300);
-          // cssEditor.setOption("lint", false);
-          // cssEditor.refresh();
-          $(".css-editor").css('background-image', 'url("assets/scss.svg")');
-        } else if ( valueSelected == "sass") {
-          cssEditor.setOption("mode", "text/x-sass");
-          cssEditor.setOption("gutters", ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]);
-          setTimeout(function() {
-            $(".CodeMirror-lint-mark-error, .CodeMirror-lint-mark-error-metro").removeClass("CodeMirror-lint-mark-error CodeMirror-lint-mark-error-metro");
-            $(".CodeMirror-lint-mark-warning, .CodeMirror-lint-mark-warning-metro").removeClass("CodeMirror-lint-mark-warning CodeMirror-lint-mark-warning-metro");
-          }, 300);
-          // cssEditor.setOption("lint", false);
-          // cssEditor.refresh();
-          $(".css-editor").css('background-image', 'url("assets/sass.svg")');
         } else {
           cssEditor.setOption("mode", "css");
           cssEditor.setOption("gutters", ["CodeMirror-lint-markers", "CodeMirror-linenumbers", "CodeMirror-foldgutter"]);
@@ -2603,19 +2259,784 @@ var timeout, delay, selected_text, str, mynum,
         if ( valueSelected == "none") {
           jsEditor.setOption("mode", "javascript");
           jsEditor.refresh();
-          $(".js-editor").css('background-image', 'url("assets/js.svg")');
         } else if ( valueSelected == "coffeescript") {
           jsEditor.setOption("mode", "text/x-coffeescript");
-          $(".js-editor").css('background-image', 'url("assets/coffeescript.svg")');
-        } else if ( valueSelected == "typescript") {
-          jsEditor.setOption("mode", "text/typescript");
-          $(".js-editor").css('background-image', 'url("assets/typescript.svg")');
-        } else if ( valueSelected == "babel") {
-          jsEditor.setOption("mode", "text/javascript");
-          $(".js-editor").css('background-image', 'url("assets/babel.svg")');
+          jsEditor.setOption("lint", false);
+          jsEditor.setOption("lint", true);
         }
         updatePreview();
       }).trigger("change");
+
+      // Compile preprocessors to preview
+      $(".html-preprocessor-convert").click(function() {
+        var options = {
+            pretty: true
+        };
+        if (document.getElementById("html-preprocessor").value == "none") {
+          Html2Jade.convertHtml(htmlEditor.getValue(), {selectById: true}, function (err, jadeString) {
+            if(err) {
+              console.error(err);
+            } else {
+              htmlEditor.setValue(jadeString);
+              htmlEditor.execCommand("selectAll");
+              htmlEditor.execCommand("indentLess");
+              htmlEditor.execCommand("indentLess");
+              htmlEditor.setCursor({line: 0 , ch : 0 });
+              htmlEditor.execCommand("deleteLine");
+              htmlEditor.execCommand("deleteLine");
+              htmlEditor.execCommand("deleteLine");
+            }
+          });
+          $("#html-preprocessor").val("jade").trigger("change");
+        } else if (document.getElementById("html-preprocessor").value == "jade") {
+          $("#html-preprocessor").val("none").trigger("change");
+          htmlContent = jade.render(htmlEditor.getValue(), options);
+          htmlEditor.setValue(htmlContent);
+          beautifyHTML();
+        }
+      });
+      $(".css-preprocessor-convert").click(function() {
+        if (document.getElementById("css-preprocessor").value == "none") {
+          var css = cssEditor.getValue();
+          var converter = new Css2Stylus.Converter(css);
+          converter.processCss();
+          cssEditor.setValue(converter.getStylus());
+          $("#css-preprocessor").val("stylus").trigger("change");
+          cssEditor.setOption("lint", false);
+          cssEditor.refresh();
+        } else if (document.getElementById("css-preprocessor").value == "stylus") {
+          cssContent = cssEditor.getValue();
+          stylus(cssContent).render(function(err, out) {
+            if(err !== null) {
+              console.error("something went wrong");
+            } else {
+              cssEditor.setValue(out);
+            }
+          });
+          $("#css-preprocessor").val("none").trigger("change");
+          beautifyCSS();
+        }
+      });
+      $(".js-preprocessor-convert").click(function() {
+        if (document.getElementById("js-preprocessor").value == "none") {
+          jsContent = js2coffee.build(jsEditor.getValue()).code;
+          jsEditor.setValue(jsContent);
+          $("#js-preprocessor").val("coffeescript").trigger("change");
+        } else if (document.getElementById("js-preprocessor").value == "coffeescript") {
+          $("#js-preprocessor").val("none").trigger("change");
+          jsContent = CoffeeScript.compile(jsEditor.getValue(), { bare: true });
+          jsEditor.setValue(jsContent);
+          beautifyJS();
+        }
+      });
+    },
+    desktopExport = function(file) {
+      displayPreview(file);
+
+      var reader = new FileReader();
+
+      reader.onload = function(e) {
+        // Download as Windows App
+        $("[data-action=download-as-win-app]").on("click", function() {
+          $("input[name=menubar].active").trigger("click");
+
+          JSZipUtils.getBinaryContent('zips/YourWinApp.zip', function(err, data) {
+            if(err) {
+              throw err; // or handle err
+            }
+
+            var zip = new JSZip(data);
+            renderYourHTML();
+            renderYourCSS();
+            renderYourJS();
+
+            // Your Web App
+            var grabString = "<script src=\"libraries/jquery/jquery.js\"></script\>",
+                replaceString = "<script src=\"libraries/jquery/jquery.js\"></script\>\n    <script>\n      try {\n        $ = jQuery = module.exports;\n        // If you want module.exports to be empty, uncomment:\n        // module.exports = {};\n      } catch(e) {}\n    </script\>";
+
+            closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+            htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+            var Img16 = c16[0].toDataURL("image/png");
+            var Img32 = c32[0].toDataURL("image/png");
+            var Img64 = c64[0].toDataURL("image/png");
+            var Img128 = canvas[0].toDataURL("image/png");
+            zip.file("app/icons/16.png", Img16.split('base64,')[1],{base64: true});
+            zip.file("app/icons/32.png", Img32.split('base64,')[1],{base64: true});
+            zip.file("app/icons/64.png", Img64.split('base64,')[1],{base64: true});
+            zip.file("app/icons/128.png", Img128.split('base64,')[1],{base64: true});
+
+            // check if css editor has a value
+            if (cssEditor.getValue() !== "") {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n    " + closeFinal.getValue();
+
+              zip.file("app/css/index.css", yourCSS);
+              zip.file("app/index.html", htmlContent);
+            }
+            // check if js editor has a value
+            if ( jsEditor.getValue() !== "") {
+              if (jsEditor.getValue() === "") {
+                closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
+              } else {
+                closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+              }
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+
+              zip.file("app/js/index.js", yourJS);
+              zip.file("app/index.html", htmlContent);
+            }
+            // check if css and js editors have values
+            if (cssEditor.getValue() !== "" && jsEditor.getValue() !== "") {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+
+              zip.file("app/css/index.css", yourCSS);
+              zip.file("app/js/index.js", yourJS);
+              zip.file("app/index.html", htmlContent);
+            }
+            if (cssEditor.getValue() === "" && jsEditor.getValue() === "") {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n" + closeFinal.getValue();
+
+              zip.file("index.html", htmlContent);
+            }
+            // check if markdown editor has a value
+            if ( mdEditor.getValue() !== "") {
+              zip.file("data/README.md", mdEditor.getValue());
+            }
+
+            eval( document.querySelector("[data-action=ziplibs]").value.replace(/libraries/g,"app/libraries") );
+
+            zip.file("package.json", '{\n  "main"  : "app/index.html",\n  "name"  : "'+ document.querySelector("[data-action=sitetitle]").value +'",\n  "window": {\n      "toolbar" : false,\n      "icon"    : "app/icons/128.png",\n      "width"   : 1000,\n      "height"  : 600,\n      "position": "center"\n  }\n}');
+
+            var content = zip.generate({type:"blob"});
+            saveAs(content, document.querySelector("[data-action=sitetitle]").value.split(" ").join("-") + "-win.zip");
+            $(".preloader").remove();
+            return false;
+          });
+          return false;
+        });
+        $("[data-action=download-as-win32-app]").on("click", function() {
+          $("input[name=menubar].active").trigger("click");
+
+          JSZipUtils.getBinaryContent('zips/YourWin32App.zip', function(err, data) {
+            if(err) {
+              throw err; // or handle err
+            }
+
+            var zip = new JSZip(data);
+            renderYourHTML();
+            renderYourCSS();
+            renderYourJS();
+
+            // Your Web App
+            var grabString = "<script src=\"libraries/jquery/jquery.js\"></script\>",
+                replaceString = "<script src=\"libraries/jquery/jquery.js\"></script\>\n    <script>\n      try {\n        $ = jQuery = module.exports;\n        // If you want module.exports to be empty, uncomment:\n        // module.exports = {};\n      } catch(e) {}\n    </script\>";
+
+            closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+            htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+            var Img16 = c16[0].toDataURL("image/png");
+            var Img32 = c32[0].toDataURL("image/png");
+            var Img64 = c64[0].toDataURL("image/png");
+            var Img128 = canvas[0].toDataURL("image/png");
+            zip.file("app/icons/16.png", Img16.split('base64,')[1],{base64: true});
+            zip.file("app/icons/32.png", Img32.split('base64,')[1],{base64: true});
+            zip.file("app/icons/64.png", Img64.split('base64,')[1],{base64: true});
+            zip.file("app/icons/128.png", Img128.split('base64,')[1],{base64: true});
+
+            // check if css editor has a value
+            if (cssEditor.getValue() !== "") {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n    " + closeFinal.getValue();
+
+              zip.file("app/css/index.css", yourCSS);
+              zip.file("app/index.html", htmlContent);
+            }
+            // check if js editor has a value
+            if ( jsEditor.getValue() !== "") {
+              if (jsEditor.getValue() === "") {
+                closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
+              } else {
+                closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+              }
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+
+              zip.file("app/js/index.js", yourJS);
+              zip.file("app/index.html", htmlContent);
+            }
+            // check if css and js editors have values
+            if (cssEditor.getValue() !== "" && jsEditor.getValue() !== "") {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+
+              zip.file("app/css/index.css", yourCSS);
+              zip.file("app/js/index.js", yourJS);
+              zip.file("app/index.html", htmlContent);
+            }
+            if (cssEditor.getValue() === "" && jsEditor.getValue() === "") {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n" + closeFinal.getValue();
+
+              zip.file("index.html", htmlContent);
+            }
+            // check if markdown editor has a value
+            if ( mdEditor.getValue() !== "") {
+              zip.file("data/README.md", mdEditor.getValue());
+            }
+
+            eval( document.querySelector("[data-action=ziplibs]").value.replace(/libraries/g,"app/libraries") );
+
+            zip.file("package.json", '{\n  "main"  : "app/index.html",\n  "name"  : "'+ document.querySelector("[data-action=sitetitle]").value +'",\n  "window": {\n      "toolbar" : false,\n      "icon"    : "app/icons/128.png",\n      "width"   : 1000,\n      "height"  : 600,\n      "position": "center"\n  }\n}');
+
+            var content = zip.generate({type:"blob"});
+            saveAs(content, document.querySelector("[data-action=sitetitle]").value.split(" ").join("-") + "-win32.zip");
+            $(".preloader").remove();
+            return false;
+          });
+          return false;
+        });
+
+        // Download as Mac App
+        $("[data-action=download-as-mac-app]").on("click", function() {
+          $("input[name=menubar].active").trigger("click");
+
+          JSZipUtils.getBinaryContent('zips/YourMacApp.zip', function(err, data) {
+            if(err) {
+              throw err; // or handle err
+            }
+
+            var zip = new JSZip(data);
+            renderYourHTML();
+            renderYourCSS();
+            renderYourJS();
+
+            // Your Web App
+            var grabString = "<script src=\"libraries/jquery/jquery.js\"></script\>",
+                replaceString = "<script src=\"libraries/jquery/jquery.js\"></script\>\n    <script>\n      try {\n        $ = jQuery = module.exports;\n        // If you want module.exports to be empty, uncomment:\n        // module.exports = {};\n      } catch(e) {}\n    </script\>";
+
+            closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+            htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+            var Img16 = c16[0].toDataURL("image/png");
+            var Img32 = c32[0].toDataURL("image/png");
+            var Img64 = c64[0].toDataURL("image/png");
+            var Img128 = canvas[0].toDataURL("image/png");
+            zip.file("content/app/icons/16.png", Img16.split('base64,')[1],{base64: true});
+            zip.file("content/app/icons/32.png", Img32.split('base64,')[1],{base64: true});
+            zip.file("content/app/icons/64.png", Img64.split('base64,')[1],{base64: true});
+            zip.file("content/app/icons/128.png", Img128.split('base64,')[1],{base64: true});
+
+            // check if css editor has a value
+            if (cssEditor.getValue() !== "") {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"../libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"../libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n    " + closeFinal.getValue();
+
+              zip.file("content/app/css/index.css", yourCSS);
+              zip.file("content/app/index.html", htmlContent);
+            }
+            // check if js editor has a value
+            if ( jsEditor.getValue() !== "") {
+              if (jsEditor.getValue() === "") {
+                closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
+              } else {
+                closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"../libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"../libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+              }
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+
+              zip.file("content/app/js/index.js", yourJS);
+              zip.file("content/app/index.html", htmlContent);
+            }
+            // check if css and js editors have values
+            if (cssEditor.getValue() !== "" && jsEditor.getValue() !== "") {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"../libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"../libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+
+              zip.file("content/app/css/index.css", yourCSS);
+              zip.file("content/app/js/index.js", yourJS);
+              zip.file("content/app/index.html", htmlContent);
+            }
+            if (cssEditor.getValue() === "" && jsEditor.getValue() === "") {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n" + closeFinal.getValue();
+
+              zip.file("content/index.html", htmlContent);
+            }
+            // check if markdown editor has a value
+            if ( mdEditor.getValue() !== "") {
+              zip.file("README.md", mdEditor.getValue());
+            }
+
+            eval( document.querySelector("[data-action=ziplibs]").value.replace(/libraries/g,"content/app/libraries") );
+
+            zip.file("package.json", '{\n  "main"  : "content/index.html",\n  "name"  : "'+ document.querySelector("[data-action=sitetitle]").value +'",\n  "window": {\n    "toolbar"    : false\n  }\n}');
+            zip.file("content/index.html", '<!doctype html>\n<html>\n <head>\n    <title>'+ document.querySelector("[data-action=sitetitle]").value +'</title>\n    <style>\n      iframe {\n        position: absolute;\n        top: 0;\n        left: 0;\n        width: 100%;\n        height: 100%;\n        overflow: visible;\n        border: 0;\n      }\n    </style>\n  </head>\n <body>\n    <iframe src="app/index.html"></iframe>\n\n    <script src="js/main.js"></script>\n  </body>\n</html>');
+            zip.file("content/js/main.js", 'document.addEventListener("DOMContentLoaded", function() {\n  // Load library\n  var gui = require("nw.gui");\n\n  // Reference to window\n  var win = gui.Window.get();\n\n  // Create menu container\n  var Menu = new gui.Menu({\n    type: "menubar"\n  });\n\n  //initialize default mac menu\n  Menu.createMacBuiltin("'+ document.querySelector("[data-action=sitetitle]").value +'");\n\n  // Get the root menu from the default mac menu\n  var windowMenu = Menu.items[2].submenu;\n\n  // Append new item to root menu\n  windowMenu.insert(\n    new gui.MenuItem({\n      type: "normal",\n      label: "Toggle Fullscreen",\n      key: "F",\n      modifiers: "cmd",\n      click : function () {\n        win.toggleFullscreen();\n      }\n    })\n  );\n\n  windowMenu.insert(\n    new gui.MenuItem({\n      type: "normal",\n      label: "Reload App",\n      key: "r",\n      modifiers: "cmd",\n      click : function () {\n        win.reload();\n      }\n    })\n  );\n\n  // Append Menu to Window\n  gui.Window.get().menu = Menu;\n});');
+
+            var content = zip.generate({type:"blob"});
+            saveAs(content, document.querySelector("[data-action=sitetitle]").value.split(" ").join("-") + "-mac.zip");
+            $(".preloader").remove();
+            return false;
+          });
+          return false;
+        });
+
+        // Download as Linux App
+        $("[data-action=download-as-lin-app]").on("click", function() {
+          $("input[name=menubar].active").trigger("click");
+
+          JSZipUtils.getBinaryContent('zips/YourLinApp.zip', function(err, data) {
+            if(err) {
+              throw err; // or handle err
+            }
+
+            var zip = new JSZip();
+
+            renderYourHTML();
+            renderYourCSS();
+            renderYourJS();
+
+            // Put all application files in subfolder for shell script
+            var appName = zip.folder( document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-")  );
+            appName.load(data);
+
+            // Your Web App
+            var grabString = "<script src=\"libraries/jquery/jquery.js\"></script\>",
+                replaceString = "<script src=\"libraries/jquery/jquery.js\"></script\>\n    <script>\n      try {\n        $ = jQuery = module.exports;\n        // If you want module.exports to be empty, uncomment:\n        // module.exports = {};\n      } catch(e) {}\n    </script\>";
+
+            closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+            htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+            var Img16 = c16[0].toDataURL("image/png");
+            var Img32 = c32[0].toDataURL("image/png");
+            var Img64 = c64[0].toDataURL("image/png");
+            var Img128 = canvas[0].toDataURL("image/png");
+            appName.file("app/icons/16.png", Img16.split('base64,')[1],{base64: true});
+            appName.file("app/icons/32.png", Img32.split('base64,')[1],{base64: true});
+            appName.file("app/icons/64.png", Img64.split('base64,')[1],{base64: true});
+            appName.file("app/icons/128.png", Img128.split('base64,')[1],{base64: true});
+
+            // check if css editor has a value
+            if (cssEditor.getValue() !== "") {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n    " + closeFinal.getValue();
+
+              appName.file("app/css/index.css", yourCSS);
+              appName.file("app/index.html", htmlContent);
+            }
+            // check if js editor has a value
+            if ( jsEditor.getValue() !== "") {
+              if (jsEditor.getValue() === "") {
+                closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
+              } else {
+                closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+              }
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+
+              appName.file("app/js/index.js", yourJS);
+              appName.file("app/index.html", htmlContent);
+            }
+            // check if css and js editors have values
+            if (cssEditor.getValue() !== "" && jsEditor.getValue() !== "") {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+
+              appName.file("app/css/index.css", yourCSS);
+              appName.file("app/js/index.js", yourJS);
+              appName.file("app/index.html", htmlContent);
+            }
+            if (cssEditor.getValue() === "" && jsEditor.getValue() === "") {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n" + closeFinal.getValue();
+
+              appName.file("app/index.html", htmlContent);
+            }
+            // check if markdown editor has a value
+            if ( mdEditor.getValue() !== "") {
+              appName.file("README.md", mdEditor.getValue());
+            }
+
+            eval( document.querySelector("[data-action=ziplibs]").value.replace(/libraries/g,"app/libraries").replace(/zip.file/g,"appName.file") );
+
+            appName.file("package.json", '{\n  "main"  : "app/index.html",\n  "name"  : "'+ document.querySelector("[data-action=sitetitle]").value +'",\n  "window": {\n      "toolbar" : false,\n      "icon"    : "app/icons/128.png",\n      "width"   : 1000,\n      "height"  : 600,\n      "position": "center"\n  }\n}');
+
+            zip.file("make.sh", "if [ -d ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +" ]; then\n  typeset LP_FILE=${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +".desktop\n\n  # Remove the target file if any\n  rm -f ${LP_FILE}\n  printf \"%s[Desktop Entry]\\nName="+ document.querySelector("[data-action=sitetitle]").value +"\\nPath=${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"\\nActions=sudo\\nExec=./"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"/electron\\nIcon=${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"/resources/default_app/icons/128.png\\nTerminal=true\\nType=Application\\nStartupNotify=true > ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +".desktop\" >> ${LP_FILE}\n\n  echo 'Your application and launcher are now located at ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"'\n  rm README.md\n  rm make.sh\n  cd ../\n  rmdir "+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"-lin\n  cd ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"/\n  chmod 775 electron\nfi\n\nif [ ! -d ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +" ]; then\n  mv "+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +" ${HOME}\n\n  typeset LP_FILE=${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +".desktop\n\n  # Remove the target file if any\n  rm -f ${LP_FILE}\n  printf \"%s[Desktop Entry]\\nName="+ document.querySelector("[data-action=sitetitle]").value +"\\nPath=${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"\\nActions=sudo\\nExec=./"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"/electron\\nIcon=${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"/resources/default_app/icons/128.png\\nTerminal=true\\nType=Application\\nStartupNotify=true > ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +".desktop\" >> ${LP_FILE}\n\n  echo 'Your application and launcher are now located at ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"'\n  rm README.md\n  rm make.sh\n  cd ../\n  rmdir "+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"-lin\n  cd ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"/\n  chmod 775 electron\nfi\n\n# For Windows OS\n#if EXIST ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +" (\n  #echo Yes\n#) ELSE (\n  #echo No\n#)\n");
+            zip.file("README.md", "### Instructions\n 1. Extract the `"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"-lin.zip` folder anywhere on your computer except the home folder. \n 2. Open a terminal and then navigate to "+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"'s directory and `run the make.sh file`.\n\n  **example**:\n  cd Downloads/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"-lin\n\n 3. This will move the "+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +" sibling folder and it's descendants to your home directory and create an application launcher.\n");
+
+            var content = zip.generate({type:"blob"});
+            saveAs(content, document.querySelector("[data-action=sitetitle]").value.split(" ").join("-") + "-lin.zip");
+            $(".preloader").remove();
+            return false;
+          });
+          return false;
+        });
+        $("[data-action=download-as-lin32-app]").on("click", function() {
+          $("input[name=menubar].active").trigger("click");
+
+          JSZipUtils.getBinaryContent('zips/YourLin32App.zip', function(err, data) {
+            if(err) {
+              throw err; // or handle err
+            }
+
+            var zip = new JSZip();
+
+            renderYourHTML();
+            renderYourCSS();
+            renderYourJS();
+
+            // Put all application files in subfolder for shell script
+            var appName = zip.folder( document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-")  );
+            appName.load(data);
+
+            // Your Web App
+            var grabString = "<script src=\"libraries/jquery/jquery.js\"></script\>",
+                replaceString = "<script src=\"libraries/jquery/jquery.js\"></script\>\n    <script>\n      try {\n        $ = jQuery = module.exports;\n        // If you want module.exports to be empty, uncomment:\n        // module.exports = {};\n      } catch(e) {}\n    </script\>";
+
+            closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+            htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+            var Img16 = c16[0].toDataURL("image/png");
+            var Img32 = c32[0].toDataURL("image/png");
+            var Img64 = c64[0].toDataURL("image/png");
+            var Img128 = canvas[0].toDataURL("image/png");
+            appName.file("app/icons/16.png", Img16.split('base64,')[1],{base64: true});
+            appName.file("app/icons/32.png", Img32.split('base64,')[1],{base64: true});
+            appName.file("app/icons/64.png", Img64.split('base64,')[1],{base64: true});
+            appName.file("app/icons/128.png", Img128.split('base64,')[1],{base64: true});
+
+            // check if css editor has a value
+            if (cssEditor.getValue() !== "") {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n    " + closeFinal.getValue();
+
+              appName.file("app/css/index.css", yourCSS);
+              appName.file("app/index.html", htmlContent);
+            }
+            // check if js editor has a value
+            if ( jsEditor.getValue() !== "") {
+              if (jsEditor.getValue() === "") {
+                closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
+              } else {
+                closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+              }
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+
+              appName.file("app/js/index.js", yourJS);
+              appName.file("app/index.html", htmlContent);
+            }
+            // check if css and js editors have values
+            if (cssEditor.getValue() !== "" && jsEditor.getValue() !== "") {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value.split(grabString).join(replaceString) + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+
+              appName.file("app/css/index.css", yourCSS);
+              appName.file("app/js/index.js", yourJS);
+              appName.file("app/index.html", htmlContent);
+            }
+            if (cssEditor.getValue() === "" && jsEditor.getValue() === "") {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
+              htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n" + closeFinal.getValue();
+
+              appName.file("app/index.html", htmlContent);
+            }
+            // check if markdown editor has a value
+            if ( mdEditor.getValue() !== "") {
+              appName.file("README.md", mdEditor.getValue());
+            }
+
+            eval( document.querySelector("[data-action=ziplibs]").value.replace(/libraries/g,"app/libraries").replace(/zip.file/g,"appName.file") );
+
+            appName.file("package.json", '{\n  "main"  : "app/index.html",\n  "name"  : "'+ document.querySelector("[data-action=sitetitle]").value +'",\n  "window": {\n      "toolbar" : false,\n      "icon"    : "app/icons/128.png",\n      "width"   : 1000,\n      "height"  : 600,\n      "position": "center"\n  }\n}');
+
+            zip.file("make.sh", "if [ -d ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +" ]; then\n  typeset LP_FILE=${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +".desktop\n\n  # Remove the target file if any\n  rm -f ${LP_FILE}\n  printf \"%s[Desktop Entry]\\nName="+ document.querySelector("[data-action=sitetitle]").value +"\\nPath=${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"\\nActions=sudo\\nExec=./"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"/electron\\nIcon=${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"/resources/default_app/icons/128.png\\nTerminal=true\\nType=Application\\nStartupNotify=true > ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +".desktop\" >> ${LP_FILE}\n\n  echo 'Your application and launcher are now located at ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"'\n  rm README.md\n  rm make.sh\n  cd ../\n  rmdir "+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"-lin32\n  cd ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"/\n  chmod 775 electron\nfi\n\nif [ ! -d ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +" ]; then\n  mv "+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +" ${HOME}\n\n  typeset LP_FILE=${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +".desktop\n\n  # Remove the target file if any\n  rm -f ${LP_FILE}\n  printf \"%s[Desktop Entry]\\nName="+ document.querySelector("[data-action=sitetitle]").value +"\\nPath=${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"\\nActions=sudo\\nExec=./"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"/electron\\nIcon=${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"/resources/default_app/icons/128.png\\nTerminal=true\\nType=Application\\nStartupNotify=true > ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +".desktop\" >> ${LP_FILE}\n\n  echo 'Your application and launcher are now located at ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"'\n  rm README.md\n  rm make.sh\n  cd ../\n  rmdir "+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"-lin32\n  cd ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"/\n  chmod 775 electron\nfi\n\n# For Windows OS\n#if EXIST ${HOME}/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +" (\n  #echo Yes\n#) ELSE (\n  #echo No\n#)\n");
+            zip.file("README.md", "### Instructions\n 1. Extract the `"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"-lin32.zip` folder anywhere on your computer except the home folder. \n 2. Open a terminal and then navigate to "+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"'s directory and `run the make.sh file`.\n\n  **example**:\n  cd Downloads/"+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +"-lin32\n\n 3. This will move the "+ document.querySelector("[data-action=sitetitle]").value.replace(/ /g, "-") +" sibling folder and it's descendants to your home directory and create an application launcher.\n");
+
+            var content = zip.generate({type:"blob"});
+            saveAs(content, document.querySelector("[data-action=sitetitle]").value.split(" ").join("-") + "-lin32.zip");
+            $(".preloader").remove();
+            return false;
+          });
+          return false;
+        });
+
+        // Download as Chrome App
+        $("[data-action=download-as-chrome-app]").on("click", function() {
+          $("input[name=menubar].active").trigger("click");
+          $("[data-action=chromeappdialog]").fadeIn();
+        });
+        $("[data-action=app-cancel]").on("click", function() {
+          $("[data-action=chromeappdialog]").fadeOut();
+        });
+        $("[data-action=app-confirm]").on("click", function() {
+          if ( (document.querySelector("[data-action=sitetitle]").value === "") || (document.querySelector("[data-action=app-descr]").value === "") ) {
+            alertify.error("Download failed! Please fill in all required fields.");
+            $(".preloader").remove();
+          } else {
+            $("[data-action=chromeappdialog]").fadeOut();
+            JSZipUtils.getBinaryContent("zips/font-awesome.zip", function(err, data) {
+              if(err) {
+                throw err; // or handle err
+              }
+
+              var zip = new JSZip(data);
+              var appName = zip.folder("app");
+              appName.load(data);
+              renderYourHTML();
+              renderYourCSS();
+              renderYourJS();
+
+              // Your Web App
+              // check if css editor has a value
+              if (cssEditor.getValue() !== "") {
+                closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+                htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n    " + closeFinal.getValue();
+
+                zip.file("app/css/index.css", yourCSS);
+                zip.file("app/index.html", htmlContent);
+              }
+              // check if js editor has a value
+              if ( jsEditor.getValue() !== "") {
+                if (cssEditor.getValue() === "") {
+                  closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
+                } else {
+                  closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+                }
+                htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+
+                zip.file("app/js/index.js", yourJS);
+                zip.file("app/index.html", htmlContent);
+              }
+              // check if css and js editors have values
+              if (cssEditor.getValue() !== "" && jsEditor.getValue() !== "") {
+                closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+                htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+
+                zip.file("app/css/index.css", yourCSS);
+                zip.file("app/js/index.js", yourJS);
+                zip.file("app/index.html", htmlContent);
+              }
+              if (cssEditor.getValue() === "" && jsEditor.getValue() === "") {
+                closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
+                htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n" + closeFinal.getValue();
+
+                zip.file("app/index.html", htmlContent);
+              }
+              // check if markdown editor has a value
+              if ( mdEditor.getValue() !== "") {
+                zip.file("README.md", mdEditor.getValue());
+              }
+
+              var Img16 = c16[0].toDataURL("image/png");
+              var Img32 = c32[0].toDataURL("image/png");
+              var Img64 = c64[0].toDataURL("image/png");
+              var Img128 = canvas[0].toDataURL("image/png");
+              zip.file("assets/16.png", Img16.split('base64,')[1],{base64: true});
+              zip.file("assets/32.png", Img32.split('base64,')[1],{base64: true});
+              zip.file("assets/64.png", Img64.split('base64,')[1],{base64: true});
+              zip.file("assets/128.png", Img128.split('base64,')[1],{base64: true});
+              eval( document.querySelector("[data-action=ziplibs]").value.replace(/libraries/g,"app/libraries") );
+              zip.file("css/index.css", "html, body {\n  margin: 0;\n  padding: 0;\n  width: 100%;\n  height: 100%;\n}\n\nwebview, iframe {\n  width: 100%;\n  height: 100%;\n  border: 0;\n}");
+              zip.file("index.html", "<!DOCTYPE html>\n<html>\n  <head>\n    <title>"+ document.querySelector("[data-action=sitetitle]").value +"</title>\n    <link rel=\"stylesheet\" href=\"css/index.css\" />\n  </head>\n  <body>\n    <iframe src=\"app/index.html\">\n      Your Chromebook does not support the iFrame html element.\n    </iframe>\n  </body>\n</html>");
+
+              if ( $(".offline-mode").is(":checked") ) {
+                zip.file("manifest.json", '{\n  "manifest_version": 2,\n  "name": "'+ document.querySelector("[data-action=sitetitle]").value +'",\n  "short_name": "'+ document.querySelector("[data-action=sitetitle]").value +'",\n  "description": "'+ document.querySelector("[data-action=app-descr]").value +'",\n  "version": "'+ document.querySelector("[data-value=version]").value +'",\n  "minimum_chrome_version": "38",\n  "offline_enabled": true,\n  "permissions": [ "storage", "fileSystem", "unlimitedStorage", "http://*/", "https://*/" ],\n  "icons": {\n    "16": "assets/16.png",\n    "32": "assets/32.png",\n    "64": "assets/64.png",\n    "128": "assets/128.png"\n  },\n\n  "app": {\n    "background": {\n      "scripts": ["background.js"]\n    }\n  }\n}\n');
+                if ( $(".frame-mode").is(":checked") ) {
+                  zip.file("background.js", "/**\n * Listens for the app launching, then creates the window.\n *\n * @see http://developer.chrome.com/apps/app.runtime.html\n * @see http://developer.chrome.com/apps/app.window.html\n */\nchrome.app.runtime.onLaunched.addListener(function(launchData) {\n  chrome.app.window.create(\n    'app/index.html',\n    {\n      frame: 'none',\n      id: 'mainWindow',\n      innerBounds: {\n        'width': 800,\n        'height': 600\n      }\n    }\n  );\n});");
+                } else {
+                  zip.file("background.js", "/**\n * Listens for the app launching, then creates the window.\n *\n * @see http://developer.chrome.com/apps/app.runtime.html\n * @see http://developer.chrome.com/apps/app.window.html\n */\nchrome.app.runtime.onLaunched.addListener(function(launchData) {\n  chrome.app.window.create(\n    'app/index.html',\n    {\n      id: 'mainWindow',\n      innerBounds: {\n        'width': 800,\n        'height': 600\n      }\n    }\n  );\n});");
+                }
+              } else {
+                zip.file("manifest.json", '{\n  "manifest_version": 2,\n  "name": "'+ document.querySelector("[data-action=sitetitle]").value +'",\n  "short_name": "'+ document.querySelector("[data-action=sitetitle]").value +'",\n  "description": "'+ document.querySelector("[data-action=app-descr]").value +'",\n  "version": "'+ document.querySelector("[data-value=version]").value +'",\n  "minimum_chrome_version": "38",\n  "offline_enabled": false,\n  "permissions": [ "storage", "fileSystem", "unlimitedStorage", "http://*/", "https://*/" ],\n  "icons": {\n    "16": "assets/16.png",\n    "32": "assets/32.png",\n    "64": "assets/64.png",\n    "128": "assets/128.png"\n  },\n\n  "app": {\n    "background": {\n      "scripts": ["background.js"]\n    }\n  }\n}\n');
+                if ( $(".frame-mode").is(":checked") ) {
+                  zip.file("background.js", "/**\n * Listens for the app launching, then creates the window.\n *\n * @see http://developer.chrome.com/apps/app.runtime.html\n * @see http://developer.chrome.com/apps/app.window.html\n */\nchrome.app.runtime.onLaunched.addListener(function(launchData) {\n  chrome.app.window.create(\n    'app/index.html',\n    {\n      frame: 'none',\n      id: 'mainWindow',\n      innerBounds: {\n        'width': 800,\n        'height': 600\n      }\n    }\n  );\n});");
+                } else {
+                  zip.file("background.js", "/**\n * Listens for the app launching, then creates the window.\n *\n * @see http://developer.chrome.com/apps/app.runtime.html\n * @see http://developer.chrome.com/apps/app.window.html\n */\nchrome.app.runtime.onLaunched.addListener(function(launchData) {\n  chrome.app.window.create(\n    'app/index.html',\n    {\n      id: 'mainWindow',\n      innerBounds: {\n        'width': 800,\n        'height': 600\n      }\n    }\n  );\n});");
+                }
+              }
+
+              // Your Web App
+              var content = zip.generate({type:"blob"});
+              saveAs(content, document.querySelector("[data-action=sitetitle]").value.split(" ").join("-") + "-chromeapp.zip");
+              $(".preloader").remove();
+              $(".dialog-bg").fadeOut();
+              return false;
+            });
+          }
+          return false;
+        });
+
+        // Download as Chrome Extension
+        $("[data-action=download-as-chrome-ext]").on("click", function() {
+          $("input[name=menubar].active").trigger("click");
+          $("[data-action=chromeextdialog]").fadeIn();
+        });
+        $("[data-action=ext-cancel]").on("click", function() {
+          $("[data-action=chromeextdialog]").fadeOut();
+        });
+        $("[data-action=ext-confirm]").on("click", function() {
+          if ( (document.querySelector("[data-action=sitetitle]").value === "") || (document.querySelector("[data-action=ext-descr]").value === "") ) {
+            alertify.error("Download failed! Please fill in all required fields.");
+            $(".preloader").remove();
+          } else {
+            $("[data-action=chromeextdialog]").fadeOut();
+            JSZipUtils.getBinaryContent("zips/font-awesome.zip", function(err, data) {
+              if(err) {
+                throw err; // or handle err
+              }
+
+              var zip = new JSZip(data);
+              renderYourHTML();
+              renderYourCSS();
+              renderYourJS();
+
+              // Your Web App
+              // check if css editor has a value
+              if (cssEditor.getValue() !== "") {
+                closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+                htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n    " + closeFinal.getValue();
+
+                zip.file("css/index.css", yourCSS);
+                zip.file("index.html", htmlContent);
+              }
+              // check if js editor has a value
+              if ( jsEditor.getValue() !== "") {
+                if (cssEditor.getValue() === "") {
+                  closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
+                } else {
+                  closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+                }
+                htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+
+                zip.file("js/index.js", yourJS);
+                zip.file("index.html", htmlContent);
+              }
+              // check if css and js editors have values
+              if (cssEditor.getValue() !== "" && jsEditor.getValue() !== "") {
+                closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+                htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+
+                zip.file("css/index.css", yourCSS);
+                zip.file("js/index.js", yourJS);
+                zip.file("index.html", htmlContent);
+              }
+              if (cssEditor.getValue() === "" && jsEditor.getValue() === "") {
+                closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
+                htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n" + closeFinal.getValue();
+
+                zip.file("index.html", htmlContent);
+              }
+              // check if markdown editor has a value
+              if ( mdEditor.getValue() !== "") {
+                zip.file("README.md", mdEditor.getValue());
+              }
+
+              var Img16 = c16[0].toDataURL("image/png");
+              var Img32 = c32[0].toDataURL("image/png");
+              var Img64 = c64[0].toDataURL("image/png");
+              var Img128 = canvas[0].toDataURL("image/png");
+              zip.file("assets/16.png", Img16.split('base64,')[1],{base64: true});
+              zip.file("assets/32.png", Img32.split('base64,')[1],{base64: true});
+              zip.file("assets/64.png", Img64.split('base64,')[1],{base64: true});
+              zip.file("assets/128.png", Img128.split('base64,')[1],{base64: true});
+              eval( document.querySelector("[data-action=ziplibs]").value );
+
+              zip.file("manifest.json", "{\n  \"manifest_version\": 2,\n  \"name\": \""+ document.querySelector("[data-action=sitetitle]").value +"\",\n  \"short_name\": \""+ document.querySelector("[data-action=sitetitle]").value +"\",\n  \"description\": \""+ document.querySelector("[data-action=ext-descr]").value +"\",\n  \"version\": \""+ document.querySelector("[data-value=version]").value +"\",\n  \"minimum_chrome_version\": \"38\",\n  \"permissions\": [ \"storage\", \"unlimitedStorage\", \"http://*/\", \"https://*/\" ],\n  \"icons\": {\n    \"16\": \"assets/16.png\",\n    \"32\": \"assets/32.png\",\n    \"64\": \"assets/64.png\",\n    \"128\": \"assets/128.png\"\n  },\n\n  \"browser_action\": {\n    \"default_icon\": \"assets/128.png\",\n    \"default_title\": \""+ document.querySelector("[data-action=sitetitle]").value +"\",\n    \"default_popup\": \"index.html\"\n  },\n  \n  \"content_security_policy\": \"script-src 'self' 'unsafe-eval'; object-src 'self'\"\n}");
+
+              // Your Web App
+              var content = zip.generate({type:"blob"});
+              saveAs(content, document.querySelector("[data-action=sitetitle]").value.split(" ").join("-") + "-chromeext.zip");
+              $(".preloader").remove();
+              $(".dialog-bg").fadeOut();
+              return false;
+            });
+          }
+          return false;
+        });
+        return false;
+      };
+      reader.readAsArrayBuffer(file);
+      return false;
+    },
+    desktopExportation = function() {
+      preprocessors();
+
+      // Drag and drop image load
+      holder.ondragover = function() {
+        this.className = "hover";
+        return false;
+      };
+      holder.ondragend = function() {
+        this.className = "";
+        return false;
+      };
+      holder.ondrop = function(e) {
+        this.className = "";
+        e.preventDefault();
+        var file = e.dataTransfer.files[0];
+        desktopExport(file);
+        $(".watch").removeClass("hide");
+        $(".download-dialog").addClass("imagehasloaded");
+        $("#imagehasloaded").prop("checked", true);
+        return false;
+      };
+      
+      // Download as zip
+      $("[data-action=download-zip]").on("click", function() {
+        $("input[name=menubar].active").trigger("click");
+
+        JSZipUtils.getBinaryContent("zips/font-awesome.zip", function(err, data) {
+          if(err) {
+            throw err; // or handle err
+          }
+
+          var zip = new JSZip(data);
+          renderYourHTML();
+          renderYourCSS();
+          renderYourJS();
+
+          // check if css editor has a value
+          if (cssEditor.getValue() !== "") {
+            closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+            htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n    " + closeFinal.getValue();
+
+            zip.file("css/index.css", yourCSS);
+            zip.file("index.html", htmlContent);
+          }
+          // check if js editor has a value
+
+          if ( jsEditor.getValue() !== "") {
+            if (cssEditor.getValue() === "") {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
+            } else {
+              closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+            }
+            htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+
+            zip.file("js/index.js", yourJS);
+            zip.file("index.html", htmlContent);
+          }
+          // check if css and js editors have values
+          if (cssEditor.getValue() !== "" && jsEditor.getValue() !== "") {
+            closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+            htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    <script src=\"js/index.js\"></script>" + closeFinal.getValue();
+
+            zip.file("css/index.css", yourCSS);
+            zip.file("js/index.js", yourJS);
+            zip.file("index.html", htmlContent);
+          }
+          if (cssEditor.getValue() === "" && jsEditor.getValue() === "") {
+            closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
+            htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n" + closeFinal.getValue();
+
+            zip.file("index.html", htmlContent);
+          }
+          // check if markdown editor has a value
+          if ( mdEditor.getValue() !== "") {
+            zip.file("README.md", mdEditor.getValue());
+          }
+          eval( document.querySelector("[data-action=ziplibs]").value );
+          var content = zip.generate({type:"blob"});
+          saveAs(content, document.querySelector("[data-action=sitetitle]").value.split(" ").join("-") + ".zip");
+          $(".preloader").remove();
+          return false;
+        });
+      });
     },
     initCollab = function() {
       function callCollabUpdate() {
@@ -2675,10 +3096,19 @@ var timeout, delay, selected_text, str, mynum,
         mdEditor.setValue(msg.output);
       });
       
-      $("#collaborate").click(function() {
-        TogetherJS(this);
-        return false;
-      });
+      //$("#collaborate").click(function() {
+        //TogetherJS(this);
+        //return false;
+      //});
+      $("#collaborate").click( 
+        if(TogetherJS==false}{
+          function() {
+            TogetherJS(this);
+            return false;
+        }
+        
+        }
+      );
     },
     miscellaneous = function() {
       // Tool Inputs
@@ -2704,7 +3134,8 @@ var timeout, delay, selected_text, str, mynum,
 
       // Allow Users To Share Weaves via Twitter
       // Test with Something2Do Feed
-      document.querySelector(".adddemos-tablets").innerHTML = '<a data-action="newdocument" class="online">new document</a><a data-action="feed">feed</a><br><a class="twitter-timeline"  href="https://twitter.com/hashtag/kodeWeaveShare" data-widget-id="747302832529825797">#kodeWeaveShare Tweets</a><script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?\'http\':\'https\';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+"://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");<'+'/scr'+'ipt><style>.adddemos-tablets iframe[id*="twitter-widget"] {float: none; width: 100% !important; height: calc(100vh - 141px) !important; }</style>';
+      // $(".adddemos-tablets").html('<a class="twitter-timeline" data-dnt="true" href="https://twitter.com/hashtag/Something2Do" data-widget-id="734863226400280576" data-chrome="noheader nofooter noborders transparent" height="100%">#Something2Do Tweets</a><script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?\'http\':\'https\';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+"://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");<'+'/scr'+'ipt><style>iframe[id*="twitter-widget"] {float: none; width: 100% !important; height: 250px !important; }</style>');
+      $(".adddemos-tablets").html('<a data-action="newdocument" class="online">new document</a><a data-action="feed">feed</a><br><a class="twitter-timeline"  href="https://twitter.com/hashtag/kodeWeaveShare" data-widget-id="747302832529825797">#kodeWeaveShare Tweets</a><script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?\'http\':\'https\';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+"://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");<'+'/scr'+'ipt><style>.adddemos-tablets iframe[id*="twitter-widget"] {float: none; width: 100% !important; height: calc(100vh - 141px) !important; }</style>');
 
       // Show Twitter Feed
       document.querySelector("[data-action=feed]").onclick = function() {
@@ -2719,6 +3150,19 @@ var timeout, delay, selected_text, str, mynum,
       
       welcomeDialog();
     },
+    loader = $("#load"),
+    c16 = $("[data-action=n16]"),
+    c32 = $("[data-action=n32]"),
+    c64 = $("[data-action=n64]"),
+    canvas = $("[data-action=holder]"),
+    ctx16 = c16[0].getContext("2d"),
+    ctx32 = c32[0].getContext("2d"),
+    ctx64 = c64[0].getContext("2d"),
+    ctx = canvas[0].getContext("2d"),
+    holder = document.getElementById("holder"),
+    myarray = [],
+    current = 1,
+    activeEditor = document.querySelector("[data-action=activeEditor]"),
     storeValues = function() {
       // Save Site Title Value for LocalStorage
       if ( localStorage.getItem("siteTitle")) {
@@ -2735,6 +3179,13 @@ var timeout, delay, selected_text, str, mynum,
       
       document.title = "kodeWeave: " + document.querySelector("[data-action=sitetitle]").value;
 
+      // Save App Version for LocalStorage
+      if ( localStorage.getItem("appVersion")) {
+        document.querySelector("[data-value=version]").value = localStorage.getItem("appVersion");
+      }
+      $("[data-value=version]").on("keyup change", function() {
+        localStorage.setItem("appVersion", this.value);
+      });
       // Save FontSize for LocalStorage
       if ( localStorage.getItem("fontSize")) {
         document.querySelector("[data-editor=fontSize]").value = localStorage.getItem("fontSize");
@@ -2796,33 +3247,6 @@ var timeout, delay, selected_text, str, mynum,
         $('.angularjs, .angularzip').clear();
       }
 
-      if ( $("#angularmaterial").is(":checked") ) {
-        $('.angularmaterial').clear();
-        download_to_textbox('libraries/angular-material/angular-material.min.css', $('.angularmaterial1'));
-        download_to_textbox('libraries/angular-material/angular.min.js', $('.angularmaterial2'));
-        download_to_textbox('libraries/angular-material/angular-material.min.js', $('.angularmaterial3'));
-        download_to_textbox('libraries/angular-animate.min.js', $('.angularmaterial4'));
-        download_to_textbox('libraries/angular-material/angular-aria.min.js', $('.angularmaterial5'));
-        $(".angularmaterialzip").val("zip.file('libraries/angular-material/angular-material.min.css', $(\".angularmaterial1\").val());\n zip.file('libraries/angular-material/angular.min.js', $(\".angularmaterial2\").val());\n zip.file('libraries/angular-material/angular-material.min.js', $(\".angularmaterial3\").val());\n zip.file('libraries/angular-material/angular-animate.min.js', $(\".angularmaterial4\").val());\n zip.file('libraries/angular-material/angular-aria.min.js', $(\".angularmaterial5\").val());");
-      } else {
-        $('.angularmaterial, .angularmaterialzip').clear();
-      }
-      
-      if ( $("#animatecss").is(":checked") ) {
-        $('.animatecss').clear();
-        download_to_textbox('libraries/animateCSS/animate.min.css', $('.animatecss'));
-        $(".animatecsszip").val("zip.file('libraries/animateCSS/animate.min.css', $(\".animatecss\").val());");
-      } else {
-        $('.animatecss, .animatecsszip').clear();
-      }
-      if ( $("#backbone").is(":checked") ) {
-        $('.backbone').clear();
-        download_to_textbox('libraries/backbone/backbone.js', $('.backbone'));
-        $('.backbone').trigger("change");
-        $(".backbonezip").val("zip.file('libraries/backbone/backbone.js', $('.backbone').val());");
-      } else {
-        $('.backbone, .backbonezip').clear();
-      }
       if ( $("#bootstrap").is(":checked") ) {
         $('.bootstrap').clear();
         download_to_textbox('libraries/bootstrap/bootstrap.css', $('.bootstrap1'));
@@ -2832,6 +3256,7 @@ var timeout, delay, selected_text, str, mynum,
       } else {
         $('.bootstrap, .bootstrapzip').clear();
       }
+
       if ( $("#chartjs").is(":checked") ) {
         $('.chartjs').clear();
         download_to_textbox('libraries/chartjs/chart.min.js', $('.chartjs'));
@@ -2982,14 +3407,6 @@ var timeout, delay, selected_text, str, mynum,
       } else {
         $('.dojo, .dojozip').clear();
       }
-      if ( $("#enhance").is(":checked") ) {
-        $('.enhance').clear();
-        download_to_textbox('libraries/enhance/enhance.js', $('.enhance'));
-        $('.enhance').trigger("change");
-        $(".enhancezip").val("zip.file('libraries/enhance/enhance.js', $('.enhance').val());");
-      } else {
-        $('.enhance, .enhancezip').clear();
-      }
       if ( $("#fabric").is(":checked") ) {
         $('.fabric').clear();
         download_to_textbox('libraries/fabric/fabric.min.js', $('.fabric'));
@@ -2998,53 +3415,11 @@ var timeout, delay, selected_text, str, mynum,
       } else {
         $('.fabric, .fabriczip').clear();
       }
-      if ( $("#foundation").is(":checked") ) {
-        $('.foundation').clear();
-        download_to_textbox('libraries/foundation/foundation.min.css', $('.foundation1'));
-        download_to_textbox('libraries/foundation/foundation.min.js', $('.foundation2'));
-        $('.foundation').trigger("change");
-        $(".fabriczip").val("zip.file('libraries/foundation/foundation.min.css', $(\".foundation1\").val());\nzip.file('libraries/foundation/foundation.min.js', $(\".foundation2\").val());");
-      } else {
-        $('.foundation, .foundationzip').clear();
-      }
-      if ( $("#handlebars").is(":checked") ) {
-        $('.handlebars').clear();
-        download_to_textbox('libraries/handlebars/handlebars.min.js', $('.handlebars'));
-        $('.handlebars').trigger("change");
-        $(".handlebarszip").val("zip.file('libraries/handlebars/handlebars.min.js', $(\".handlebars\").val());");
-      } else {
-        $('.handlebars, .handlebarszip').clear();
-      }
-      if ( $("#hintcss").is(":checked") ) {
-        $('.hintcss').clear();
-        download_to_textbox('libraries/hintCSS/hint.min.css', $('.hintcss'));
-        $('.hintcss').trigger("change");
-        $(".hintcsszip").val("zip.file('libraries/hintCSS/hint.min.css', $(\".hintcss\").val());");
-      } else {
-        $('.hintcss, .hintcsszip').clear();
-      }
-      if ( $("#immutable").is(":checked") ) {
-        $('.immutable').clear();
-        download_to_textbox('libraries/immutable/immutable.min.js', $('.immutable'));
-        $('.immutable').trigger("change");
-        $(".immutablezip").val("zip.file('libraries/immutable/immutable.min.js', $('.immutable').val());");
-      } else {
-        $('.immutable, .immutablezip').clear();
-      }
-      if ( $("#jarallax").is(":checked") ) {
-        $('.jarallax').clear();
-        download_to_textbox('libraries/jarallax/jarallax.js', $('.jarallax'));
-        $('.jarallax').trigger("change");
-        $(".jarallaxzip").val("zip.file('libraries/jarallax/jarallax.js', $(\".jarallax\").val());");
-      } else {
-        $('.jarallax, .jarallaxzip').clear();
-      }
       if ( $("#jquery").is(":checked") ) {
         $('.jquery').clear();
-        download_to_textbox('libraries/jquery/jquery.js', $('.jquery1'));
-        download_to_textbox('libraries/jquery/jquery-migrate-1.2.1.min.js', $('.jquery2'));
+        download_to_textbox('libraries/jquery/jquery.js', $('.jquery'));
         $('.jquery').trigger("change");
-        $(".jqueryzip").val("zip.file('libraries/jquery/jquery.js', $(\".jquery1\").val());\nzip.file('libraries/jquery/jquery-migrate-1.2.1.min.js', $(\".jquery2\").val());");
+        $(".jqueryzip").val("zip.file('libraries/jquery/jquery.js', $(\".jquery\").val());");
       } else {
         $('.jquery, .jqueryzip').clear();
       }
@@ -3167,42 +3542,6 @@ var timeout, delay, selected_text, str, mynum,
       } else {
         $('.knockout, .knockoutzip').clear();
       }
-      if ( $("#immutable").is(":checked") ) {
-        $('.immutable').clear();
-        download_to_textbox('libraries/immutable/lodash.core.js', $('.lodash'));
-        $('.lodash').trigger("change");
-        $(".lodashzip").val("zip.file('libraries/immutable/lodash.core.js', $('.lodash').val());");
-      } else {
-        $('.lodash, .lodashzip').clear();
-      }
-      if ( $("#mdl").is(":checked") ) {
-        $('.mdl').clear();
-        download_to_textbox('libraries/mdl/material.min.css', $('.mdl1'));
-        download_to_textbox('libraries/mdl/material.min.js', $('.mdl2'));
-        $('.mdl1, .mdl2').trigger("change");
-        $(".mdlzip").val("zip.file('libraries/mdl/material.min.css', $('.mdl1').val());\n  zip.file('libraries/mdl/material.min.js', $('.mdl2').val());");
-      } else {
-        $('.mdl, .mdlzip').clear();
-      }
-      if ( $("#moment").is(":checked") ) {
-        $('.moment').clear();
-        download_to_textbox('libraries/moment/moment.js', $('.moment'));
-        download_to_textbox('libraries/moment/moment-with-locales.js', $('.moment'));
-        $('.moment').trigger("change");
-        $(".momentzip").val("zip.file('libraries/moment/moment.js', $(\".moment1\").val());\nzip.file('libraries/moment/moment-with-locales.js', $(\".moment2\").val());");
-      } else {
-        $('.moment, .momentzip').clear();
-      }
-      if ( $("#momenttimezone").is(":checked") ) {
-        $('.momenttimezone').clear();
-        download_to_textbox('libraries/moment-timezone/moment-timezone-with-data-2012-2022.js', $('.momenttimezone1'));
-        download_to_textbox('libraries/moment-timezone/moment-timezone-with-data.js', $('.momenttimezone2'));
-        download_to_textbox('libraries/moment-timezone/moment-timezone.js', $('.momenttimezone3'));
-        $('.momenttimezone').trigger("change");
-        $(".momenttimezonezip").val("zip.file('libraries/moment/moment.js', $(\".momenttimezone1\").val());\nzip.file('libraries/moment/moment.js', $(\".momenttimezone2\").val());\nzip.file('libraries/moment/moment.js', $(\".momenttimezone3\").val());");
-      } else {
-        $('.momenttimezone, .momenttimezonezip').clear();
-      }
       if ( $("#modernizer").is(":checked") ) {
         $('.modernizer').clear();
         download_to_textbox('libraries/modernizer/modernizer.js', $('.modernizer'));
@@ -3275,15 +3614,6 @@ var timeout, delay, selected_text, str, mynum,
       } else {
         $('.qooxdoo, .qooxdooszip').clear();
       }
-      if ( $("#react").is(":checked") ) {
-        $('.react').clear();
-        download_to_textbox('libraries/react/react-with-addons.js', $('.react1'));
-        download_to_textbox('libraries/react/react-dom.js', $('.react2'));
-        $('.react1, .react2').trigger("change");
-        $(".reactzip").val("zip.file('libraries/react/react-with-addons.js', $('.react1').val());\n  zip.file('libraries/react/react-dom.js', $('.react2').val());");
-      } else {
-        $('.react, .reactzip').clear();
-      }
       if ( $("#raphael").is(":checked") ) {
         $('.raphael').clear();
         download_to_textbox('libraries/raphael/raphael.js', $('.raphael'));
@@ -3316,14 +3646,6 @@ var timeout, delay, selected_text, str, mynum,
       } else {
         $('.scriptaculous, .scriptaculouszip').clear();
       }
-      if ( $("#smoothscroll").is(":checked") ) {
-        $('.smoothscroll').clear();
-        download_to_textbox('libraries/snap-svg/snap-svg.js', $('.smoothscroll'));
-        $('.smoothscroll').trigger("change");
-        $(".smoothscrollzip").val("zip.file('libraries/SmoothScroll/SmoothScroll.js', $(\".smoothscroll\").val());");
-      } else {
-        $('.smoothscroll, .smoothscrollzip').clear();
-      }
       if ( $("#snapsvg").is(":checked") ) {
         $('.snapsvg').clear();
         download_to_textbox('libraries/snap-svg/snap-svg.js', $('.snapsvg'));
@@ -3340,15 +3662,6 @@ var timeout, delay, selected_text, str, mynum,
       } else {
         $('.svgjs, .svgjszip').clear();
       }
-      if ( $("#sweetalert2").is(":checked") ) {
-        $('.sweetalert').clear();
-        download_to_textbox('libraries/sweetalert2/sweetalert2.min.css', $('.sweetalert1'));
-        download_to_textbox('libraries/sweetalert2/sweetalert2.min.js', $('.sweetalert2'));
-        $('.sweetalert').trigger("change");
-        $(".sweetalertzip").val("zip.file('libraries/sweetalert2/sweetalert2.min.css', $(\".sweetalert1\").val());\nzip.file('libraries/sweetalert2/sweetalert2.min.js', $(\".sweetalert2\").val());");
-      } else {
-        $('.sweetalert, .sweetalertzip').clear();
-      }
       if ( $("#threejs").is(":checked") ) {
         $('.threejs').clear();
         download_to_textbox('libraries/threejs/three.min.js', $('.threejs'));
@@ -3357,16 +3670,6 @@ var timeout, delay, selected_text, str, mynum,
       } else {
         $('.threejs, .threejszip').clear();
       }
-      if ( $("#uikit").is(":checked") ) {
-        $('.uikit').clear();
-        download_to_textbox('libraries/uikit/css/uikit.css', $('.uikit1'));
-        download_to_textbox('libraries/uikit/js/uikit.js', $('.uikit2'));
-        download_to_textbox('libraries/uikit/js/uikit-icons.js', $('.uikit3'));
-        $('.uikit').trigger("change");
-        $(".uikitzip").val("zip.file('libraries/uikit/css/uikit.css', $('.uikit1').val());\n  zip.file('libraries/uikit/js/uikit.js', $('.uikit2').val());\n  zip.file('libraries/uikit/js/uikit-icons.js', $('.uikit3').val());");
-      } else {
-        $('.uikit, .uikitzip').clear();
-      }
       if ( $("#underscorejs").is(":checked") ) {
         $('.underscorejs').clear();
         download_to_textbox('libraries/underscore/underscore.js', $('.underscorejs'));
@@ -3374,14 +3677,6 @@ var timeout, delay, selected_text, str, mynum,
         $(".underscorejszip").val("zip.file('libraries/underscore/underscore.js', $(\".underscorejs\").val());");
       } else {
         $('.underscorejs, .underscorejszip').clear();
-      }
-      if ( $("#vue").is(":checked") ) {
-        $('.vue').clear();
-        download_to_textbox('libraries/vue/vue.js', $('.vue'));
-        $('.vue').trigger("change");
-        $(".vuezip").val("zip.file('libraries/vue/vue.js', $('.vue').val());");
-      } else {
-        $('.vue, .vuezip').clear();
       }
       if ( $("#webfontloader").is(":checked") ) {
         $('.webfontloader').clear();
@@ -3424,7 +3719,8 @@ var timeout, delay, selected_text, str, mynum,
       return $.get(url, null, function (data) {
         el.setValue(data);
       }, "text");
-    };
+    },
+    addDemos = '<ul class="ldd-menu">\n<li>\n<div class="ldd-submenu">\n<ul style="border-left:none;">\n<li class="ldd-heading">A</li>\n<li><a data-action="alphabetizer">alphabetizer</a></li>\n<li><a data-action="angular">angular JS demo</a></li>\n<li><a data-action="applicator">applicator</a></li>\n<li>&nbsp;</li>\n<li class="ldd-heading">C</li>\n<li><a data-action="charactermap">character map</a></li>\n<li><a data-action="codeeditor">code editor</a></li>\n<li><a data-action="convertforvalues">convert for values</a></li>\n<li>&nbsp;</li>\n<li class="ldd-heading">D</li>\n<li><a data-action="dateclock">date and time</a></li>\n<li><a data-action="detectorientation">detect orientation</a></li>\n<li><a data-action="osdisplay">display operating system</a></li>\n<li>&nbsp;</li>\n<li class="ldd-heading">K</li>\n<li><a data-action="keylogger">keylogger</a></li>\n<li>&nbsp;</li>\n</ul>\n<ul>\n<li class="ldd-heading">M</li>\n<li><a data-action="markdowneditor">markdown editor</a></li>\n<li>&nbsp;</li>\n<li class="ldd-heading">N</li>\n<li><a data-action="newdocument">new document</a></li>\n<li>&nbsp;</li>\n<li class="ldd-heading">P</li>\n<li><a data-action="packagezipfiles">package zip files</a></li>\n<li><a data-action="passwordgen">password generator</a></li>\n<li><a data-action="pdfembed">pdf embed</a></li>\n<li><a data-action="pictureviewer">picture viewer</a></li>\n<li><a data-action="polyui">poly ui kit</a></li>\n<li>&nbsp;</li>\n<li class="ldd-heading">S</li>\n<li><a data-action="simpleslideshow">simple slideshow</a></li>\n<li><a data-action="splitter">splitter</a></li>\n<li>&nbsp;</li>\n</ul>\n</div>\n</li>\n</ul>';
 
 // Rules Specified for HTML Validation
 var ruleSets = {
@@ -3452,19 +3748,9 @@ function getURL(url, c) {
   };
 }
 
-var server;
-getURL("https://ternjs.net/defs/ecmascript.json", function(err, code) {
-  if (err) throw new Error("Request for ecmascript.json: " + err);
+getURL("https://ternjs.net/defs/ecma5.json", function(err, code) {
+  if (err) throw new Error("Request for ecma5.json: " + err);
   server = new CodeMirror.TernServer({defs: [JSON.parse(code)]});
-  // jsEditor.setOption("extraKeys", {
-  //   "Ctrl-Space": function(cm) { server.complete(cm); },
-  //   "Ctrl-I": function(cm) { server.showType(cm); },
-  //   "Ctrl-O": function(cm) { server.showDocs(cm); },
-  //   "Alt-.": function(cm) { server.jumpToDef(cm); },
-  //   "Alt-,": function(cm) { server.jumpBack(cm); },
-  //   "Ctrl-Q": function(cm) { server.rename(cm); },
-  //   "Ctrl-.": function(cm) { server.selectName(cm); }
-  // })
   jsEditor.on("cursorActivity", function(cm) { server.updateArgHints(cm); });
 });
 
@@ -3484,10 +3770,8 @@ var htmlEditor = CodeMirror(document.getElementById("htmlEditor"), {
     "Ctrl-Q": function(cm){ cm.foldCode(cm.getCursor()); },
     "Ctrl-'": function(){ applyLowercase(); },
     "Ctrl-\\": function(){ applyUppercase(); },
-    "Ctrl-I": function(){ applyDuplication(); },
     "Cmd-'": function(){ applyLowercase(); },
     "Cmd-\\": function(){ applyUppercase(); },
-    "Cmd-I": function(){ applyDuplication(); },
     "Shift-Ctrl-'": function(){ applyMinify(); },
     "Shift-Ctrl-\\": function(){ applyBeautify(); },
     "Shift-Cmd-'": function(){ applyMinify(); },
@@ -3536,10 +3820,8 @@ var cssEditor = CodeMirror(document.getElementById("cssEditor"), {
     "Ctrl-Q": function(cm){ cm.foldCode(cm.getCursor()); },
     "Ctrl-'": function(){ applyLowercase(); },
     "Ctrl-\\": function(){ applyUppercase(); },
-    "Ctrl-I": function(){ applyDuplication(); },
     "Cmd-'": function(){ applyLowercase(); },
     "Cmd-\\": function(){ applyUppercase(); },
-    "Cmd-I": function(){ applyDuplication(); },
     "Shift-Ctrl-'": function(){ applyMinify(); },
     "Shift-Ctrl-\\": function(){ applyBeautify(); },
     "Shift-Cmd-'": function(){ applyMinify(); },
@@ -3580,16 +3862,18 @@ var jsEditor = CodeMirror(document.getElementById("jsEditor"), {
   autoCloseTags: true,
   foldGutter: true,
   dragDrop: true,
-  lint: false,
-  gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
+  lint: {
+    options: {
+      "asi": true
+    }
+  },
+  gutters: ["CodeMirror-lint-markers", "CodeMirror-linenumbers", "CodeMirror-foldgutter"],
   extraKeys: {
     "Ctrl-Q": function(cm){ cm.foldCode(cm.getCursor()); },
     "Ctrl-'": function(){ applyLowercase(); },
     "Ctrl-\\": function(){ applyUppercase(); },
-    "Ctrl-I": function(){ applyDuplication(); },
     "Cmd-'": function(){ applyLowercase(); },
     "Cmd-\\": function(){ applyUppercase(); },
-    "Cmd-I": function(){ applyDuplication(); },
     "Shift-Ctrl-'": function(){ applyMinify(); },
     "Shift-Ctrl-\\": function(){ applyBeautify(); },
     "Shift-Cmd-'": function(){ applyMinify(); },
@@ -3648,10 +3932,8 @@ var mdEditor = CodeMirror(document.getElementById("mdEditor"), {
     "Ctrl-Q": function(cm){ cm.foldCode(cm.getCursor()); },
     "Ctrl-'": function(){ applyLowercase(); },
     "Ctrl-\\": function(){ applyUppercase(); },
-    "Ctrl-I": function(){ applyDuplication(); },
     "Cmd-'": function(){ applyLowercase(); },
     "Cmd-\\": function(){ applyUppercase(); },
-    "Cmd-I": function(){ applyDuplication(); },
     "Shift-Ctrl-'": function(){ applyMinify(); },
     "Shift-Ctrl-\\": function(){ applyBeautify(); },
     "Shift-Cmd-'": function(){ applyMinify(); },
@@ -3721,7 +4003,6 @@ function cssPreProcessor(cssSelected) {
 
   if (cssSelected == "none") {
     cssContent = cssEditor.getValue();
-    $("#preview").contents().find("#b8c770cc").html(cssContent);
   } else if (cssSelected == "stylus") {
     var cssVal = cssEditor.getValue();
     stylus(cssVal).render(function(err, out) {
@@ -3729,21 +4010,7 @@ function cssPreProcessor(cssSelected) {
         console.error("something went wrong");
       } else {
         cssContent = out;
-        $("#preview").contents().find("#b8c770cc").html(cssContent);
       }
-    });
-  } else if (cssSelected == "less") {
-    var cssVal = cssEditor.getValue();
-    less.render(cssVal, function (e, output) {
-      cssContent = output.css;
-      $("#preview").contents().find("#b8c770cc").html(cssContent);
-    });
-  } else if (cssSelected == "scss" || cssSelected == "sass") {
-    var cssVal = cssEditor.getValue();
-
-    sass.compile(cssVal, function(result) {
-      cssContent = result.text;
-      $("#preview").contents().find("#b8c770cc").html(cssContent);
     });
   }
 }
@@ -3757,7 +4024,7 @@ function updatePreview() {
   document.querySelector(".preview-editor").appendChild(frame);
   var previewFrame = document.getElementById("preview");
   var preview =  previewFrame.contentDocument ||  previewFrame.contentWindow.document;
-  var heading = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\">\n" + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\">\n" + "<script src=\"    lib/screenlog.js\"></script>";
+  var heading = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\">\n" + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\">\n";
   preview.open();
   var htmlSelected = $("#html-preprocessor option:selected").val();
   var jsSelected   = $("#js-preprocessor   option:selected").val();
@@ -3765,16 +4032,9 @@ function updatePreview() {
   cssPreProcessor();
   
   if ( jsSelected == "none") {
-    jsContent = "<script>screenLog.init({ autoScroll: false });\n\n" + jsEditor.getValue() + "</script>";
+    jsContent = "<script>" + jsEditor.getValue() + "</script>";
   } else if ( jsSelected == "coffeescript") {
-    jsContent = "<script>screenLog.init({ autoScroll: false });</script><script>" + CoffeeScript.compile(jsEditor.getValue(), { bare: true }) + "</script>";
-  } else if ( jsSelected == "typescript") {
-    jsContent = "<script>screenLog.init({ autoScroll: false });</script><script type='text/typescript'>" + jsEditor.getValue() + "</script>\n    <script src='lib/typescript.min.js'></script>\n    <script src='lib/typescript.compile.min.js'></script>";
-  } else if ( jsSelected == "babel") {
-    var result = Babel.transform(jsEditor.getValue(), {
-      presets: ['latest', 'stage-2', 'react']
-    });
-    jsContent = "<script>screenLog.init({ autoScroll: false });\n\n" + result.code + "</script>";
+    jsContent = "<script>" + CoffeeScript.compile(jsEditor.getValue(), { bare: true }) + "</script>";
   }
 
   if ( htmlSelected == "none") {
@@ -3811,75 +4071,41 @@ var cancel = setTimeout(function() {
   updatePreview();
 }, 300);
 
-// Toggle Auto Update Preview
-var checkedPrev = JSON.parse(localStorage.getItem("autoUpdate"));
-document.getElementById("changePrev").checked = checkedPrev;
-$("#changePrev").on("change", function() {
-  callPrev();
-  $("input[name=menubar].active").trigger("click");
-}).trigger('change');
-
-function callPrev() {
-  var changePrev = document.getElementById("changePrev");
-  (changePrev.checked) ? $("#runeditor").hide() : $("#runeditor").show();
-  (changePrev.checked) ? localStorage.setItem("autoUpdate", "true") : localStorage.setItem("autoUpdate", "false");
+htmlEditor.on("change", function() {
+  clearTimeout(cancel);
+  setTimeout(function() {
+    updatePreview();
+  }, 300);
+  localStorage.setItem("htmlData", htmlEditor.getValue());
   
-  htmlEditor.on("change", function() {
-    if (changePrev.checked) {
-      clearTimeout(cancel);
-      setTimeout(function() {
-        updatePreview();
-      }, 300);
-      localStorage.setItem("htmlData", htmlEditor.getValue());
-
-      setTimeout(function() {
-        htmlEditor.setOption("paletteHints", "true");
-      }, 300);
-      return false;
-    } else {
-      localStorage.setItem("htmlData", htmlEditor.getValue());
-
-      setTimeout(function() {
-        htmlEditor.setOption("paletteHints", "true");
-      }, 300);
-    }
-  });
-  cssEditor.on("change", function() {
-    cssPreProcessor();
-    localStorage.setItem("cssData", cssEditor.getValue());
-
-    setTimeout(function() {
-      cssEditor.setOption("paletteHints", "true");
-    }, 300);
-    return false;
-  });
-  jsEditor.on("change", function() {
-    if (changePrev.checked) {
-      clearTimeout(cancel);
-      setTimeout(function() {
-        updatePreview();
-      }, 300);
-      localStorage.setItem("jsData", jsEditor.getValue());
-
-      setTimeout(function() {
-        jsEditor.setOption("paletteHints", "true");
-      }, 300);
-      return false;
-    } else {
-      localStorage.setItem("jsData", jsEditor.getValue());
-
-      setTimeout(function() {
-        jsEditor.setOption("paletteHints", "true");
-      }, 300);
-    }
-  });
-  return false;
-}
-
+  setTimeout(function() {
+    htmlEditor.setOption("paletteHints", "true");
+  }, 300);
+});
+cssEditor.on("change", function() {
+  cssPreProcessor();
+  $("#preview").contents().find("#b8c770cc").html(cssContent);
+  localStorage.setItem("cssData", cssEditor.getValue());
+  
+  setTimeout(function() {
+    cssEditor.setOption("paletteHints", "true");
+  }, 300);
+});
+jsEditor.on("change", function() {
+  clearTimeout(cancel);
+  setTimeout(function() {
+    updatePreview();
+  }, 300);
+  localStorage.setItem("jsData", jsEditor.getValue());
+  
+  setTimeout(function() {
+    jsEditor.setOption("paletteHints", "true");
+  }, 300);
+});
 mdEditor.on("change", function() {
   markdownPreview();
   localStorage.setItem("mdData", mdEditor.getValue());
-
+  
   setTimeout(function() {
     mdEditor.setOption("paletteHints", "true");
   }, 300);
@@ -3899,14 +4125,7 @@ mdEditor.on("drop", function() {
   mdEditor.setValue("");
 });
 
-// Run Preview Button Click
-document.getElementById("runeditor").onclick = function() {
-  clearTimeout(cancel);
-  setTimeout(function() {
-    updatePreview();
-  }, 300);
-};
-
+validators();
 responsiveUI();
 loadFiles();
 
@@ -3916,6 +4135,43 @@ loadFiles();
     $(this).val("");
   };
 }) (jQuery);
+
+function displayPreview(file) {
+  var reader = new FileReader();
+
+  reader.onload = function(e) {
+    var img = new Image();
+    var img16 = new Image();
+    var img32 = new Image();
+    var img64 = new Image();
+    img.src = e.target.result;
+    img16.src = e.target.result;
+    img32.src = e.target.result;
+    img64.src = e.target.result;
+    img16.onload = function() {
+      // x, y, width, height
+      ctx16.clearRect(0, 0, 16, 16);
+      ctx16.drawImage(img16, 0, 0, 16, 16);
+    };
+    img32.onload = function() {
+      // x, y, width, height
+      ctx32.clearRect(0, 0, 32, 32);
+      ctx32.drawImage(img32, 0, 0, 32, 32);
+    };
+    img64.onload = function() {
+      // x, y, width, height
+      ctx64.clearRect(0, 0, 64, 64);
+      ctx64.drawImage(img64, 0, 0, 64, 64);
+    };
+    img.onload = function() {
+      // x, y, width, height
+      ctx.clearRect(0, 0, 128, 128);
+      ctx.drawImage(img, 0, 0, 128, 128);
+    };
+  };
+  reader.readAsDataURL(file);
+  return false;
+}
 storeValues();
 
 var hash = window.location.hash.substring(1);
@@ -3930,13 +4186,8 @@ function loadgist(gistid) {
     var jadeVal        = gistdata.data.files["index.jade"];
     var cssVal         = gistdata.data.files["index.css"];
     var stylusVal      = gistdata.data.files["index.styl"];
-    var lessVal        = gistdata.data.files["index.less"];
-    var scssVal        = gistdata.data.files["index.scss"];
-    var sassVal        = gistdata.data.files["index.sass"];
     var jsVal          = gistdata.data.files["index.js"];
     var coffeeVal      = gistdata.data.files["index.coffee"];
-    var typescriptVal  = gistdata.data.files["index.ts"];
-    var babelVal       = gistdata.data.files["index.jsx"];
     var mdVal      = gistdata.data.files["README.md"];
     var settings   = gistdata.data.files["settings.json"].content;
     var libraries  = gistdata.data.files["libraries.json"].content;
@@ -3945,6 +4196,7 @@ function loadgist(gistid) {
 
     // Return font settings from json
     document.querySelector("[data-action=sitetitle]").value = jsonSets.siteTitle;
+    document.querySelector("[data-value=version]").value = jsonSets.version;
     document.querySelector("[data-editor=fontSize]").value = jsonSets.editorFontSize;
     document.querySelector("[data-action=sitedesc]").value = jsonSets.description;
     document.querySelector("[data-action=siteauthor]").value = jsonSets.author;
@@ -4015,19 +4267,7 @@ function loadgist(gistid) {
       cssEditor.setValue(stylusVal.content);
       $("#css-preprocessor").val("stylus").trigger("change");
     }
-    if (lessVal) {
-      cssEditor.setValue(lessVal.content);
-      $("#css-preprocessor").val("less").trigger("change");
-    }
-    if (scssVal) {
-      cssEditor.setValue(scssVal.content);
-      $("#css-preprocessor").val("scss").trigger("change");
-    }
-    if (sassVal) {
-      cssEditor.setValue(sassVal.content);
-      $("#css-preprocessor").val("sass").trigger("change");
-    }
-    if (!cssVal && !stylusVal && !lessVal && !scssVal && !sassVal) {
+    if (!cssVal && !stylusVal) {
       cssEditor.setValue("");
     }
     if (jsVal) {
@@ -4038,15 +4278,7 @@ function loadgist(gistid) {
       jsEditor.setValue(coffeeVal.content);
       $("#js-preprocessor").val("coffeescript").trigger("change");
     }
-    if (typescriptVal) {
-      jsEditor.setValue(typescriptVal.content);
-      $("#js-preprocessor").val("typescript").trigger("change");
-    }
-    if (babelVal) {
-      jsEditor.setValue(babelVal.content);
-      $("#js-preprocessor").val("babel").trigger("change");
-    }
-    if (!jsVal && !coffeeVal && !typescriptVal && !babelVal) {
+    if (!jsVal && !coffeeVal) {
       jsEditor.setValue("");
     }
 
@@ -4081,334 +4313,223 @@ if (window.location.hash) {
 }
 
 // Save as a Gist Online
-//document.querySelector("[data-action=save-gist]").onclick = function() {
-//  $("input[name=menubar].active").trigger("click");
-//  
-//  // Show Donate Dialog
-//  $(".donatebanner").removeClass("hide");
-//  
-//  // Return checked libraries
-//  var arr = {};
-//  $(".ldd-submenu input[type=checkbox]").each(function() {
-//    var id = this.id;
-//    arr[id] = (this.checked ? true : false);
-//  });
-//
-//  // check if description and markdown editor have a value
-//  if ( !document.querySelector("[data-action=sitedesc]").value) {
-//     document.querySelector("[data-action=sitedesc]").value = "Saved from kodeWeave!";
-//  }
-//
-//  // Return user settings
-//  var sArr = {
-//    "siteTitle": document.querySelector("[data-action=sitetitle]").value,
-//    "editorFontSize": document.querySelector("[data-editor=fontSize]").value,
-//    "description": document.querySelector("[data-action=sitedesc]").value,
-//    "author": document.querySelector("[data-action=siteauthor]").value
-//  };
-//
-//  var files = {};
-//	if (htmlEditor.getValue()) {
-//      var htmlSelected = $("#html-preprocessor option:selected").val();
-//
-//      if ( htmlSelected == "none") {
-//        yourHTML = htmlEditor.getValue();
-//        files["index.html"] = htmlEditor.getValue() ? { content: yourHTML } : null;
-//      } else if ( htmlSelected == "jade") {
-//        yourHTML = htmlEditor.getValue();
-//        files["index.jade"] = htmlEditor.getValue() ? { content: yourHTML } : null;
-//      }
-//	}
-//	if (cssEditor.getValue()) {
-//      cssSelected = $("#css-preprocessor option:selected").val();
-//
-//      if ( cssSelected == "none") {
-//        yourCSS = cssEditor.getValue();
-//        files["index.css"] = cssEditor.getValue() ? { content: yourCSS } : null;
-//      } else if ( cssSelected == "stylus") {
-//        yourCSS = cssEditor.getValue();
-//        files["index.styl"] = cssEditor.getValue() ? { content: yourCSS } : null;
-//      } else if ( cssSelected == "less") {
-//        yourCSS = cssEditor.getValue();
-//        files["index.less"] = cssEditor.getValue() ? { content: yourCSS } : null;
-//      } else if ( cssSelected == "scss") {
-//        yourCSS = cssEditor.getValue();
-//        files["index.scss"] = cssEditor.getValue() ? { content: yourCSS } : null;
-//      } else if ( cssSelected == "sass") {
-//        yourCSS = cssEditor.getValue();
-//        files["index.sass"] = cssEditor.getValue() ? { content: yourCSS } : null;
-//      }
-//	}
-//	if (jsEditor.getValue()) {
-//      var jsSelected = $("#js-preprocessor option:selected").val();
-//
-//      if ( jsSelected == "none") {
-//        yourJS = jsEditor.getValue();
-//        files["index.js"] = jsEditor.getValue() ? { content: yourJS } : null;
-//      } else if ( jsSelected == "coffeescript") {
-//        yourJS = jsEditor.getValue();
-//        files["index.coffee"] = jsEditor.getValue() ? { content: yourJS } : null;
-//      } else if ( jsSelected == "typescript") {
-//        yourJS = jsEditor.getValue();
-//        files["index.ts"] = jsEditor.getValue() ? { content: yourJS } : null;
-//      } else if ( jsSelected == "babel") {
-//        yourJS = jsEditor.getValue();
-//        files["index.jsx"] = jsEditor.getValue() ? { content: yourJS } : null;
-//      }
-//	}
-//	if (mdEditor.getValue()) {
-//		files["README.md"] = mdEditor.getValue() ? { content: mdEditor.getValue() } : null;
-//	}
-//	files["libraries.json"] = { "content": JSON.stringify(arr) };
-//	files["settings.json"] = { "content": JSON.stringify(sArr) };
-//
-//  data = {
-//    "description": document.querySelector("[data-action=sitedesc]").value,
-//    "public": true,
-//    "files": files
-//  };
-//  
-//  if (!mdEditor.getValue().trim()) {
-//    $("#mdurl").prop("checked", false);
-//    hasMD = "";
-//  } else {
-//    hasMD = "md,";
-//  }
-//  if (!htmlEditor.getValue().trim()) {
-//    $("#htmlurl").prop("checked", false);
-//    hasHTML = "";
-//  } else {
-//    hasHTML = "html,";
-//  }
-//  if (!cssEditor.getValue().trim()) {
-//    $("#cssurl").prop("checked", false);
-//    hasCSS = "";
-//  } else {
-//    hasCSS = "css,";
-//  }
-//  if (!jsEditor.getValue().trim()) {
-//    $("#jsurl").prop("checked", false);
-//    hasJS = "";
-//  } else {
-//    hasJS = "js,";
-//  }
-//  // editEmbed = "edit,";
-//  // darkUI = "dark,";
-//  // seeThrough = "transparent,";
-//   hasResult = "result";
-//  // showEditors = hasMD + hasHTML + hasCSS + hasJS + editEmbed + darkUI + seeThrough + hasResult;
-//   showEditors = hasMD + hasHTML + hasCSS + hasJS + hasResult;
-//
-//  // Post on Github via JQuery Ajax
-//  $.ajax({
-//    url: "https://api.github.com/gists",
-//    type: "POST",
-//    dataType: "json",
-//    data: JSON.stringify(data)
-//  }).success(function(e) {
-//    window.location.hash = e.html_url.split("https://gist.github.com/").join("");
-//    hash = window.location.hash.replace(/#/g,"");
-//    
-//    embedProject = e.html_url.split("https://gist.github.com/").join("");
-//    document.querySelector("[data-output=projectURL]").value = "https://michaelsboost.github.io/kodeWeave/editor/#" + embedProject;
-//    document.querySelector("[data-output=projectURL]").onclick = function() {
-//      this.select(true);
-//    };
-//
-//    // Toggle Editor's Visibility for Embed
-//    $("[data-target=editorURL]").on("change", function() {
-//      if (document.getElementById("mdurl").checked) {
-//        hasMD = "md,";
-//      } else {
-//        hasMD = "";
-//      }
-//      if (document.getElementById("htmlurl").checked) {
-//        hasHTML = "html,";
-//      } else {
-//        hasHTML = "";
-//      }
-//      if (document.getElementById("cssurl").checked) {
-//        hasCSS = "css,";
-//      } else {
-//        hasCSS = "";
-//      }
-//      if (document.getElementById("jsurl").checked) {
-//        hasJS = "js,";
-//      } else {
-//        hasJS = "";
-//      }
-//      if (document.getElementById("resulturl").checked) {
-//        hasResult = "result";
-//      } else {
-//        hasResult = "";
-//      }
-//      if (document.getElementById("jsurl").checked && !document.getElementById("resulturl").checked) {
-//        hasJS = "js";
-//      }
-//      if (document.getElementById("cssurl").checked && !document.getElementById("jsurl").checked && !document.getElementById("resulturl").checked) {
-//        hasCSS = "css";
-//      }
-//      if (document.getElementById("htmlurl").checked && !document.getElementById("cssurl").checked && !document.getElementById("jsurl").checked && !document.getElementById("resulturl").checked) {
-//        hasHTML = "html";
-//      }
-//      if (document.getElementById("mdurl").checked && !document.getElementById("htmlurl").checked && !document.getElementById("cssurl").checked && !document.getElementById("jsurl").checked && !document.getElementById("resulturl").checked) {
-//        hasMD = "md";
-//      }
-//      if (document.getElementById("resulturl").checked) {
-//        hasResult = "result";
-//      } else {
-//        hasResult = "";
-//      }
-//      if (document.getElementById("norerun").checked) {
-//        noRerun = "norerun,";
-//      } else {
-//        noRerun = "";
-//      }
-//      if (document.getElementById("transparentembed").checked) {
-//        seeThrough = "transparent,";
-//      } else {
-//        seeThrough = "";
-//      }
-//      if (document.getElementById("darkembed").checked) {
-//        darkUI = "dark,";
-//      } else {
-//        darkUI = "";
-//      }
-//      if (document.getElementById("editembed").checked) {
-//        editEmbed = "edit,";
-//      } else {
-//        editEmbed = "";
-//      }
-//      showEditors = hasMD + hasHTML + hasCSS + hasJS + editEmbed + darkUI + noRerun + seeThrough + hasResult;
-//
-//      document.getElementById("clearSharePreview").innerHTML = "";
-//      var shareFrame = document.createElement("iframe");
-//      shareFrame.setAttribute("id", "shareWeavePreview");
-//      shareFrame.setAttribute("sandbox", "allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts");
-//      shareFrame.style.width = "calc(100% + 1.5em)";
-//      shareFrame.style.height = "300px";
-//      document.getElementById("clearSharePreview").appendChild(shareFrame);
-//      var previewWeave = document.getElementById("shareWeavePreview");
-//      previewWeave.src = "https://michaelsboost.github.io/kodeWeave/embed/#" + embedProject + "?" + showEditors;
-//      document.querySelector("[data-output=embedProject]").value = "<iframe width=\"100%\" height=\"300\" src=\"https://michaelsboost.github.io/kodeWeave/embed/#" + embedProject + "?" + showEditors + "\" allowfullscreen=\"allowfullscreen\" frameborder=\"0\"></iframe>";
-//    });
-//    
-//    document.getElementById("clearSharePreview").innerHTML = "";
-//    var shareFrame = document.createElement("iframe");
-//    shareFrame.setAttribute("id", "shareWeavePreview");
-//    shareFrame.setAttribute("sandbox", "allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts");
-//    shareFrame.style.width = "calc(100% + 1.5em)";
-//    shareFrame.style.height = "300px";
-//    document.getElementById("clearSharePreview").appendChild(shareFrame);
-//    var previewWeave = document.getElementById("shareWeavePreview");
-//    previewWeave.src = "https://michaelsboost.github.io/kodeWeave/embed/#" + embedProject + "?" + showEditors;
-//    document.querySelector("[data-output=embedProject]").value = "<iframe width=\"100%\" height=\"300\" src=\"https://michaelsboost.github.io/kodeWeave/embed/#" + embedProject + "?" + showEditors + "\" allowfullscreen=\"allowfullscreen\" frameborder=\"0\"></iframe>";
-//    document.querySelector("[data-output=embedProject]").onclick = function() {
-//      this.select(true);
-//    };
-//
-//    $(".share-facebook").attr("href", "https://www.facebook.com/sharer/sharer.php?u=https%3A//michaelsboost.github.io/kodeWeave/editor/%23" + hash);
-//    $(".share-twitter").attr("href", "https://twitter.com/home?status=Checkout%20my%20"+ document.querySelector("[data-action=sitetitle]").value.split(" ").join("%20") +"%20%23weave%20on%20%23kodeWeave%20%23kodeWeaveShare%20-%20https%3A//michaelsboost.github.io/kodeWeave/e/%23" + hash);
-//    $(".share-gplus").attr("href", "https://plus.google.com/share?url=https%3A//michaelsboost.github.io/kodeWeave/editor/%23" + hash);
-//    $(".share-linkedin-square").attr("href", "https://www.linkedin.com/shareArticle?mini=true&url=https%3A//michaelsboost.github.io/kodeWeave/editor/%23"+ hash +"&title=Checkout%20my%20%23weave%20on%20%23kodeWeave%3A%20&summary=&source=");
-//    $("[data-action=socialdialog]").fadeIn();
-//
-//    // Successfully saved weave. 
-//    // Ask to support open source software.
-//    alertify.message("<div class=\"grid\"><div class=\"centered grid__col--12 tc\"><h2>Help keep this free!</h2><a href=\"https://snaptee.co/t/2nezt/?r=fb&teeId=2nezt\" target=\"_blank\"><img src=\"../assets/images/model-2.jpg\" width=\"100%\"></a><a class=\"btn--success\" href=\"https://snaptee.co/t/2nezt/?r=fb&teeId=2nezt\" target=\"_blank\" style=\"display: block;\">Buy Now</a></div></div>");
-//  }).error(function(e) {
-//    console.warn("Error: Could not save weave!", e);
-//    alertify.error("Error: Could not save weave!");
-//  });
-//};
-
-// Download as zip
-document.querySelector("[data-action=download-zip]").onclick = function() {
+document.querySelector("[data-action=save-gist]").onclick = function() {
   $("input[name=menubar].active").trigger("click");
-  $.get("lib/typescript.min.js", null, function(data) {
-    tsCode = data;
-  }, "text");
-  $.get("lib/typescript.compile.min.js", null, function (data) {
-    tsCompileCode = data;
-  }, "text");
+  
+  // Return checked libraries
+  var arr = {};
+  $(".ldd-submenu input[type=checkbox]").each(function() {
+    var id = this.id;
+    arr[id] = (this.checked ? true : false);
+  });
 
-  JSZipUtils.getBinaryContent("zips/font-awesome.zip", function(err, data) {
-    if(err) {
-      throw err; // or handle err
-    }
+  // check if description and markdown editor have a value
+  if ( !document.querySelector("[data-action=sitedesc]").value) {
+    $("[data-action=sitedesc]").val("Saved from kodeWeave!");
+  }
 
-    var zip = new JSZip(data);
-    renderYourHTML();
-    renderYourCSS();
-    renderYourJS();
-    
-    if (typeof yourCSS == "undefined") {
-      $("[data-action=download-zip]").trigger('click');
-    }
-    
-    var typeScriptCode = function() {
-      zip.file("js/index.ts", yourJS);
-      zip.file("js/typescript.compile.min.js", tsCompileCode);
-      zip.file("js/typescript.min.js", tsCode);
-    };
-    
-    var renderJSFile = function() {
-      return ($('#js-preprocessor option').filter(':selected').val() === 'typescript') ? typeScriptCode() : zip.file("js/index.js", yourJS);
-    };
-    
-    var renderJSCode = ($('#js-preprocessor option').filter(':selected').val() === 'typescript') ? '<script type=\"text/typescript\" src=\"js/index.ts\"></script>\n    <script src=\"js/typescript.min.js\"></script>\n    <script src=\"js/typescript.compile.min.js\"></script>' : '<script src=\"js/index.js\"></script>';
+  // Return user settings
+  var sArr = {
+    "siteTitle": document.querySelector("[data-action=sitetitle]").value,
+    "version": document.querySelector("[data-value=version]").value,
+    "editorFontSize": document.querySelector("[data-editor=fontSize]").value,
+    "description": document.querySelector("[data-action=sitedesc]").value,
+    "author": document.querySelector("[data-action=siteauthor]").value
+  };
 
-    // check if css editor has a value
-    if (cssEditor.getValue()) {
-      closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
-      htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n    " + closeFinal.getValue();
+  var files = {};
+	if (htmlEditor.getValue()) {
+      var htmlSelected = $("#html-preprocessor option:selected").val();
 
-      zip.file("css/index.css", yourCSS);
-      zip.file("index.html", htmlContent);
-    }
-    // check if css editor has a value
-    if ( jsEditor.getValue()) {
-      if (!cssEditor.getValue()) {
-        closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
-      } else {
-        closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
+      if ( htmlSelected == "none") {
+        yourHTML = htmlEditor.getValue();
+        files["index.html"] = htmlEditor.getValue() ? { content: yourHTML } : null;
+      } else if ( htmlSelected == "jade") {
+        yourHTML = htmlEditor.getValue();
+        files["index.jade"] = htmlEditor.getValue() ? { content: yourHTML } : null;
       }
-      htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    " + renderJSCode + closeFinal.getValue();
+	}
+	if (cssEditor.getValue()) {
+      cssSelected = $("#css-preprocessor option:selected").val();
 
-      renderJSFile();
-      zip.file("index.html", htmlContent);
-    }
-    // check if css and js editors have values
-    if (cssEditor.getValue() && jsEditor.getValue()) {
-      closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />\n    <link rel=\"stylesheet\" href=\"css/index.css\" />" + "\n  </head>\n  <body>\n\n");
-      htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n\n    " + renderJSCode + closeFinal.getValue();
+      if ( cssSelected == "none") {
+        yourCSS = cssEditor.getValue();
+        files["index.css"] = cssEditor.getValue() ? { content: yourCSS } : null;
+      } else if ( cssSelected == "stylus") {
+        yourCSS = cssEditor.getValue();
+        files["index.styl"] = cssEditor.getValue() ? { content: yourCSS } : null;
+      }
+	}
+	if (jsEditor.getValue()) {
+    var jsSelected = $("#js-preprocessor option:selected").val();
 
-      zip.file("css/index.css", yourCSS);
-      renderJSFile();
-      zip.file("index.html", htmlContent);
+    if ( jsSelected == "none") {
+      yourJS = jsEditor.getValue();
+      files["index.js"] = jsEditor.getValue() ? { content: yourJS } : null;
+    } else if ( jsSelected == "coffeescript") {
+      yourJS = jsEditor.getValue();
+      files["index.coffee"] = jsEditor.getValue() ? { content: yourJS } : null;
     }
-    if (!cssEditor.getValue() && !jsEditor.getValue()) {
-      closeRefs.setValue(document.querySelector("[data-action=library-code]").value + "    <link rel=\"stylesheet\" href=\"libraries/font-awesome/font-awesome.css\" />\n    <link rel=\"stylesheet\" href=\"libraries/font-awesome/macset.css\" />" + "\n  </head>\n  <body>\n\n");
-      htmlContent = openHTML.getValue() + document.querySelector("[data-action=sitetitle]").value + closeHTML.getValue() + closeRefs.getValue() + yourHTML + "\n" + closeFinal.getValue();
+	}
+	if (mdEditor.getValue()) {
+		files["README.md"] = mdEditor.getValue() ? { content: mdEditor.getValue() } : null;
+	}
+	files["libraries.json"] = { "content": JSON.stringify(arr) };
+	files["settings.json"] = { "content": JSON.stringify(sArr) };
 
-      zip.file("index.html", htmlContent);
-    }
-    // check if markdown editor has a value
-    if ( mdEditor.getValue() !== "") {
-      zip.file("README.md", mdEditor.getValue());
-    }
-    eval( document.querySelector("[data-action=ziplibs]").value );
-    var content = zip.generate({type:"blob"});
-    saveAs(content, document.querySelector("[data-action=sitetitle]").value.split(" ").join("-") + ".zip");
-    $(".preloader").remove();
-    return false;
+  data = {
+    "description": document.querySelector("[data-action=sitedesc]").value,
+    "public": true,
+    "files": files
+  };
+  
+  if (!mdEditor.getValue().trim()) {
+    $("#mdurl").prop("checked", false);
+    hasMD = "";
+  } else {
+    hasMD = "md,";
+  }
+  if (!htmlEditor.getValue().trim()) {
+    $("#htmlurl").prop("checked", false);
+    hasHTML = "";
+  } else {
+    hasHTML = "html,";
+  }
+  if (!cssEditor.getValue().trim()) {
+    $("#cssurl").prop("checked", false);
+    hasCSS = "";
+  } else {
+    hasCSS = "css,";
+  }
+  if (!jsEditor.getValue().trim()) {
+    $("#jsurl").prop("checked", false);
+    hasJS = "";
+  } else {
+    hasJS = "js,";
+  }
+  // editEmbed = "edit,";
+  // darkUI = "dark,";
+  // seeThrough = "transparent,";
+   hasResult = "result";
+  // showEditors = hasMD + hasHTML + hasCSS + hasJS + editEmbed + darkUI + seeThrough + hasResult;
+   showEditors = hasMD + hasHTML + hasCSS + hasJS + hasResult;
+
+  // Post on Github via JQuery Ajax
+  $.ajax({
+    url: "https://api.github.com/gists",
+    type: "POST",
+    dataType: "json",
+    data: JSON.stringify(data)
+  }).success(function(e) {
+    window.location.hash = e.html_url.split("https://gist.github.com/").join("");
+    hash = window.location.hash.replace(/#/g,"");
+    
+    embedProject = e.html_url.split("https://gist.github.com/").join("");
+    document.querySelector("[data-output=projectURL]").value = "https://mikethedj4.github.io/kodeWeave/editor/#" + embedProject;
+    document.querySelector("[data-output=projectURL]").onclick = function() {
+      this.select(true);
+    };
+
+    // Toggle Editor's Visibility for Embed
+    $("[data-target=editorURL]").on("change", function() {
+      if (document.getElementById("mdurl").checked) {
+        hasMD = "md,";
+      } else {
+        hasMD = "";
+      }
+      if (document.getElementById("htmlurl").checked) {
+        hasHTML = "html,";
+      } else {
+        hasHTML = "";
+      }
+      if (document.getElementById("cssurl").checked) {
+        hasCSS = "css,";
+      } else {
+        hasCSS = "";
+      }
+      if (document.getElementById("jsurl").checked) {
+        hasJS = "js,";
+      } else {
+        hasJS = "";
+      }
+      if (document.getElementById("resulturl").checked) {
+        hasResult = "result";
+      } else {
+        hasResult = "";
+      }
+      if (document.getElementById("jsurl").checked && !document.getElementById("resulturl").checked) {
+        hasJS = "js";
+      }
+      if (document.getElementById("cssurl").checked && !document.getElementById("jsurl").checked && !document.getElementById("resulturl").checked) {
+        hasCSS = "css";
+      }
+      if (document.getElementById("htmlurl").checked && !document.getElementById("cssurl").checked && !document.getElementById("jsurl").checked && !document.getElementById("resulturl").checked) {
+        hasHTML = "html";
+      }
+      if (document.getElementById("mdurl").checked && !document.getElementById("htmlurl").checked && !document.getElementById("cssurl").checked && !document.getElementById("jsurl").checked && !document.getElementById("resulturl").checked) {
+        hasMD = "md";
+      }
+      if (document.getElementById("resulturl").checked) {
+        hasResult = "result";
+      } else {
+        hasResult = "";
+      }
+      if (document.getElementById("transparentembed").checked) {
+        seeThrough = "transparent,";
+      } else {
+        seeThrough = "";
+      }
+      if (document.getElementById("darkembed").checked) {
+        darkUI = "dark,";
+      } else {
+        darkUI = "";
+      }
+      if (document.getElementById("editembed").checked) {
+        editEmbed = "edit,";
+      } else {
+        editEmbed = "";
+      }
+      showEditors = hasMD + hasHTML + hasCSS + hasJS + editEmbed + darkUI + seeThrough + hasResult;
+
+      document.getElementById("clearSharePreview").innerHTML = "";
+      var shareFrame = document.createElement("iframe");
+      shareFrame.setAttribute("id", "shareWeavePreview");
+      shareFrame.setAttribute("sandbox", "allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts");
+      shareFrame.style.width = "calc(100% + 1.5em)";
+      shareFrame.style.height = "300px";
+      document.getElementById("clearSharePreview").appendChild(shareFrame);
+      var previewWeave = document.getElementById("shareWeavePreview");
+      previewWeave.src = "https://mikethedj4.github.io/kodeWeave/embed/#" + embedProject + "?" + showEditors;
+      document.querySelector("[data-output=embedProject]").value = "<iframe width=\"100%\" height=\"300\" src=\"https://mikethedj4.github.io/kodeWeave/embed/#" + embedProject + "?" + showEditors + "\" allowfullscreen=\"allowfullscreen\" frameborder=\"0\"></iframe>";
+    });
+    
+    document.getElementById("clearSharePreview").innerHTML = "";
+    var shareFrame = document.createElement("iframe");
+    shareFrame.setAttribute("id", "shareWeavePreview");
+    shareFrame.setAttribute("sandbox", "allow-forms allow-modals allow-pointer-lock allow-popups allow-same-origin allow-scripts");
+    shareFrame.style.width = "calc(100% + 1.5em)";
+    shareFrame.style.height = "300px";
+    document.getElementById("clearSharePreview").appendChild(shareFrame);
+    var previewWeave = document.getElementById("shareWeavePreview");
+    previewWeave.src = "https://mikethedj4.github.io/kodeWeave/embed/#" + embedProject + "?" + showEditors;
+    document.querySelector("[data-output=embedProject]").value = "<iframe width=\"100%\" height=\"300\" src=\"https://mikethedj4.github.io/kodeWeave/embed/#" + embedProject + "?" + showEditors + "\" allowfullscreen=\"allowfullscreen\" frameborder=\"0\"></iframe>";
+    document.querySelector("[data-output=embedProject]").onclick = function() {
+      this.select(true);
+    };
+
+    $(".share-facebook").attr("href", "https://www.facebook.com/sharer/sharer.php?u=https%3A//mikethedj4.github.io/kodeWeave/editor/%23" + hash);
+    $(".share-twitter").attr("href", "https://twitter.com/home?status=Checkout%20my%20"+ document.querySelector("[data-action=sitetitle]").value.split(" ").join("%20") +"%20%23weave%20on%20%23kodeWeave%20%23kodeWeaveShare%20-%20https%3A//mikethedj4.github.io/kodeWeave/e/%23" + hash);
+    $(".share-gplus").attr("href", "https://plus.google.com/share?url=https%3A//mikethedj4.github.io/kodeWeave/editor/%23" + hash);
+    $(".share-instagram").attr("href", "https://www.linkedin.com/shareArticle?mini=true&url=https%3A//mikethedj4.github.io/kodeWeave/editor/%23"+ hash +"&title=Checkout%20my%20%23weave%20on%20%23kodeWeave%3A%20&summary=&source=");
+    $("[data-action=socialdialog]").fadeIn();
+
+    // Let user view gist
+    alertify.success("Your weave is saved!");
+  }).error(function(e) {
+    console.warn("Error: Could not save weave!", e);
+    alertify.error("Error: Could not save weave!");
   });
 };
-
-// Hide Donate Dialog
-$("[data-close=donation]").click(function () {
-  $(".donatebanner").addClass("hide");
-});
 
 // Save Checked Libraries for LocalStorage
 var textarea = document.querySelector("[data-action=library-code]");
@@ -4421,59 +4542,12 @@ if (localStorage.getItem("checkedLibraries")) {
  }
 }
 
-// Search Libraries
-$("[data-search=libraries]").on("keyup change", function(e) {
-  if(this.value.toLowerCase()) {
-    $("[data-clear=search]").show();
-    $(".ldd-submenu ul > div").hide();
-    $(".ldd-submenu ul").attr('style', '');
-    $(".ldd-submenu ul").css({
-      'float': 'none',
-      'border': '0'
-    });
-    $(".ldd-submenu ul > div."+ this.value.charAt(0).toLowerCase()).css('display', 'inline-block');
-  } else {
-    $("[data-clear=search]").hide();
-    $(".ldd-submenu ul").attr('style', '');
-    $(".ldd-submenu ul > div").attr('style', '');
-  }
-}).trigger('change');
-$("[data-clear=search]").click(function() {
-  $("[data-search=libraries]").val('').trigger('change');
-});
-
-// Add libraries to autocomplete search
-$("#libraries").empty();
-$.each($("[type=checkbox].check"), function(id, value) {
-  $("#libraries").append('<option value="'+ $(this).next().text() +'">'+ $(this).next().text() +'</option>')
-});
-
-// Show preview dimensions
-$("[data-toggle=dimensions]").click(function() {
-  if ($("[data-toggle=previewdimensions]").is(":visible")) {
-    $("[data-toggle=previewdimensions]").addClass('hide');
-    $(this).find(".fa").removeClass('fa-eye-slash').addClass('fa-eye')
-  } else {
-    $("[data-toggle=previewdimensions]").removeClass('hide');
-    $("[data-output=dimensions]").text($(".preview-editor").css('width') + ", " + $(".preview-editor").css('height'));
-    $(this).find(".fa").removeClass('fa-eye').addClass('fa-eye-slash')
-  }
-});
-$('#splitContainer, #rightSplitter').on('collapsed expanded resize', function() {
-  if ($("[data-toggle=previewdimensions]").is(":visible")) {
-    $("[data-output=dimensions]").text($(".preview-editor").css('width') + ", " + $(".preview-editor").css('height'));
-  }
-});
-$(window).resize(function() {
-  if ($("[data-toggle=previewdimensions]").is(":visible")) {
-    $("[data-output=dimensions]").text($(".preview-editor").css('width') + ", " + $(".preview-editor").css('height'));
-  }
-});
-
 // Add/Remove Libraries
 $("[data-action=check]").on("change keyup", function() {
   var value = $(this).parent().nextAll("div").children(".libsources:first").val() + "\n";
   checkedLibs();
+
+  var libsTextarea = $("[data-action=libstextarea]");
 
   if ( $(this).prop("checked") === true ) {
     textarea.value = textarea.value + value;
@@ -4481,9 +4555,7 @@ $("[data-action=check]").on("change keyup", function() {
     textarea.value = textarea.value.replace( value, "");
   }
 
-  if (!changePrev.checked) {
-    $("#runeditor").trigger("click");
-  }
+  updatePreview();
 
   var checked = $("[type=checkbox].check:checked");
   var lsChecked = [];
@@ -4503,10 +4575,6 @@ charGeneration();
 initdataURLGrabber();
 miscellaneous();
 newDocument();
-preprocessors();
-
-// Buy kodeWeave T-Shirt Ad
-alertify.message("<div class=\"grid\"><div class=\"centered grid__col--12 tc\"><h2>Help keep this free!</h2><a href=\"https://snaptee.co/t/0rtzt?msg=31&r=tw\" target=\"_blank\"><img src=\"../assets/images/model-1.jpg\" width=\"100%\"></a><a class=\"btn--success\" href=\"https://snaptee.co/t/0rtzt?msg=31&r=tw\" target=\"_blank\" style=\"display: block;\">Buy Now</a></div></div>");
 
 // Scroll Character Menu
 (function() {
