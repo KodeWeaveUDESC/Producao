@@ -1,3 +1,8 @@
+/* 
+  38 - cor menu superior
+  60 - cor botões
+*/
+
 @import url("style.css");
 
 ::-webkit-scrollbar {
@@ -31,7 +36,7 @@
 
 /* Menubar */
 header {
-  background: #2882CA;
+  background:rgb(77, 190, 62);
 }
 header a,
 header > label {
@@ -57,23 +62,23 @@ header > label:hover {
 #charmenu a {
   color: #fff;
   text-shadow: 0 0  0.25em #333;
-  border: 1px solid #2F6288;
+  border: 1px solid #fff;
   border-radius: 1em;
-  background: #2E71A5;
+  background: rgb(94, 153, 85);
 }
 #charmenu a:hover {
-  background: #458FC8;
-  border: 1px solid #2D74AB;
+  background: rgb(29, 78, 22);
+  border: 1px solid rgb(29, 78, 22);
   opacity: 1;
 }
 #charmenu a:active {
-  background: #366589;
-  border: 1px solid #2F6288;
+  background: rgb(29, 78, 22);
+  border: 1px solid rgb(29, 78, 22);
 }
 
 /* Dialogs */
 .dialog a, h3 {
-  color: #2882CA;
+  color: rgb(29, 78, 22);
 }
 .dialog a:hover {
   color: #2882CA;
@@ -83,7 +88,7 @@ header > label:hover {
 }
 .heading {
   font: 1.25em Lato;
-  color: #2882CA;
+  color: rgb(29, 78, 22);
 }
 .metaboxes > .heading:first-child {
   margin-top: 5px;
@@ -99,20 +104,20 @@ header > label:hover {
 }
 .dialog {
   background: #fff;
-  border: 1px solid #000;
+  border: 1px solid rgb(29, 78, 22);
 }
 .ldd-menu ul li a {
-  color: #000;
+  color: rgb(29, 78, 22);
 }
 .ldd-menu ul li a:hover{
-  background: #2882CA;
+  background: #5E9955;
   color: #fff;
 }
 .ldd-menu ul {
-  border-left: 1px solid #DDD;
+  border-left: 1px solid rgb(29, 78, 22);
 }
 .ldd-heading {
-  color: #0080FF;
+  color: rgb(29, 78, 22);
 }
 .new {
   color: #0CF;
@@ -247,7 +252,7 @@ header > label:hover {
   left: 5px;
   font-size: 14px;
   transition: all .2s;
-  color: #0080FF;
+  color: #5E9955;
 }
 /* checked mark aspect changes */
 .check:not(:checked) + label:after {
