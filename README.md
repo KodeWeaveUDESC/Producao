@@ -60,16 +60,6 @@ kodeWeave uses a number of open source projects to work properly:
 * [DataURL Grabber](https://github.com/mikethedj4/DataURL-Grabber-PhoneGap-Build) - Embed an image directly into the document with data URIs
 * Also comes prebuilt with, "just about every framework you can name off the top of your head" - Says [Web Designer Depot](https://www.webdesignerdepot.com/2017/06/5-essential-open-source-tools-for-web-designers/)
 
-To-Do
--------------
-
-- Add syntax validation for all languages/preprocessors
-
-[Export Your Web App for Desktop or Mobile!](https://michaelsboost.github.io/WebDGap/)
--------------
-
- - [WebDGap](https://michaelsboost.github.io/WebDGap/) allows you to convert any html/css/javascript web application as a native Win/Lin/Mac/Chrome application & extention. In addition you can also export as a PhoneGap Build application!
-
 Development
 -------------
 
@@ -81,7 +71,3 @@ All updates as of that date and on are solely contributor based implementations.
 You can submit a pull request or simply share the project :)
 
 Of course kodeWeave is free and open source, so you can always fork the project and have fun :)
-
-[![ko-fi](https://az743702.vo.msecnd.net/cdn/kofi2.png?v=0)](https://ko-fi.com/michaelsboost)
-
-If kodeWeave was at all helpful for you. You can show your appreciation by [Donating via SquareCash](https://cash.me/$michaelsboost) and/or [PayPal](https://www.paypal.me/mikethedj4)
